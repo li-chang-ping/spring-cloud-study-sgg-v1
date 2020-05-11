@@ -436,7 +436,7 @@ public class DeptController {
 }
 ```
 
-#### 10、DeptProvider8001 主启动类
+#### 10、DeptProvider8001 启动类
 
 ```java
 package com.lcp.springcloud;
@@ -485,11 +485,197 @@ public class DeptProvider8001 {
    > Accept: application/json
    > 
    > ###
-   > 
    > GET http://localhost:8001/dept/get/2
    > Accept: application/json
    > 
    > ###
    > ```
 
-   
+### 4、构建部门微服务消费者模块 spring-cloud-provider-consumer-80
+
+#### 1、新建 Maven 工程 spring-cloud-provider-consumer-80
+
+`pom.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>spring-cloud-study-sgg-v1</artifactId>
+        <groupId>com.lcp.springcloud</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>spring-cloud-provider-consumer-80</artifactId>
+
+    <dependencies>
+        <!-- 自己定义的api -->
+        <dependency>
+            <groupId>com.lcp.springcloud</groupId>
+            <artifactId>spring-cloud-study-api</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- 修改后立即生效，热部署 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>springloaded</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
+```
+
+#### 2、application.yaml
+
+```yaml
+server:
+  port: 80
+```
+
+#### 3、ConfigBean
+
+在 `com.lcp.springcloud.cfgbeans` 包下，类似于 spring 里面的 applicationContext.xml 编写的注入 Bean
+
+```java
+package com.lcp.springcloud.cfgbeans;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
+
+@Configuration
+public class ConfigBean {
+    
+    @Bean
+    public RestTemplate getRestTemplate() {
+        return new RestTemplate();
+    }
+}
+```
+
+#### RestTemplate
+
+RestTemplate提供了多种便捷访问远程Http服务的方法， 是一种简单便捷的访问restful服务模板类，是Spring提供的用于访问Rest服务的客户端模板工具集。
+
+官网地址
+
+https://docs.spring.io/spring-framework/docs/4.3.7.RELEASE/javadoc-api/org/springframework/web/client/RestTemplate.html
+
+使用
+
+使用 RestTemplate 访问 restful 接口非常的简单粗暴无脑，有三个主要参数
+
+1. `url`：REST请求地址
+2. `requestMap`：请求参数
+3. `ResponseBean.class`：HTTP响应转换被转换成的对象类型
+
+#### 4、DeptControllerConsumer
+
+```java
+package com.lcp.springcloud.controller;
+
+import com.lcp.springcloud.entities.Dept;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+
+import javax.annotation.Resource;
+import java.util.List;
+
+@RestController
+@RequestMapping("/consumer")
+public class DeptControllerConsumer {
+    private static final String REST_URL_PREFIX = "http://localhost:8001";
+
+    @Resource
+    private RestTemplate restTemplate;
+
+    @PostMapping("/add")
+    public boolean add(@RequestBody Dept dept) {
+        return restTemplate.postForObject(REST_URL_PREFIX + "/dept/add", dept, Boolean.class);
+    }
+
+    @GetMapping(value = "/get/{id}")
+    public Dept get(@PathVariable("id") Long id) {
+        return restTemplate.getForObject(REST_URL_PREFIX + "/dept/get/" + id, Dept.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    @RequestMapping(value = "/list", method = RequestMethod.GET)
+    public List<Dept> list() {
+        return restTemplate.getForObject(REST_URL_PREFIX + "/dept/list", List.class);
+    }
+}
+```
+
+> @SuppressWarnings 注解告诉编译器忽略指定的警告，不用在编译完成后出现警告信息。
+>
+> https://www.cnblogs.com/liaojie970/p/9009199.html
+
+#### 5、DeptConsumerApp80 启动类
+
+```java
+package com.lcp.springcloud;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class DeptConsumerApp80 {
+    public static void main(String[] args) {
+        SpringApplication.run(DeptConsumerApp80.class, args);
+    }
+}
+```
+
+6、测试
+
+启动服务进行测试，上一个服务也要启动
+
+1. http://localhost:8001/dept/get/2
+
+   结果同上
+
+2. http://localhost:8001/dept/list
+
+   结果同上
+
+3. http://localhost/consumer/add
+
+   ```
+   true
+   ```
+
+IDEA rest-api.http
+
+```http
+GET http://localhost/consumer/list
+Accept: application/json
+
+###
+GET http://localhost/consumer/get/2
+Accept: application/json
+
+###
+POST http://localhost/consumer/add
+Content-Type: application/json
+
+{
+    "dname": "Test3",
+    "db_source": "cloudDB01"
+}
+```
+
+
+
+
+
