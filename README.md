@@ -1,88 +1,33 @@
-# 尚硅谷 SpringCloud 第一季学习笔记
+# SpringCloud 学习笔记
 
-## 一、工程环境搭建
+## 项目版本
 
-spring cloud版本：Dalston.SR1
+- spring cloud版本：Dalston.SR1
+- spring boot版本：1.5.19.RELEASE
 
-spring boot版本：1.5.19.RELEASE
+## 项目模块说明
 
-### 1、父工程搭建
-
-新建 Maven 工程 spring-cloud-study-sgg-v1
-
-pom 文件，其中 packaging 必须是 pom
-
-```xml-dtd
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <groupId>org.lcp.springcloud</groupId>
-    <artifactId>spring-cloud-study-sgg-v1</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <packaging>pom</packaging>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <junit.version>4.12</junit.version>
-        <log4j.version>1.2.17</log4j.version>
-        <lombok.version>1.16.18</lombok.version>
-    </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>Dalston.SR1</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>1.5.9.RELEASE</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
-                <version>5.0.4</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>druid</artifactId>
-                <version>1.0.31</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mybatis.spring.boot</groupId>
-                <artifactId>mybatis-spring-boot-starter</artifactId>
-                <version>1.3.0</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-core</artifactId>
-                <version>1.2.3</version>
-            </dependency>
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${junit.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>log4j</groupId>
-                <artifactId>log4j</artifactId>
-                <version>${log4j.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-</project>
 ```
+spring-cloud-study-sgg-v1
+├── springcloud-study-api -- 构建公共子模块 + Hystrix服务降级
+├── springcloud-study-euraka-7001 -- Eureka集群
+├── springcloud-study-euraka-7002 -- Eureka集群
+├── springcloud-study-euraka-7003 -- Eureka集群
+├── springcloud-study-provider-dept-8001 -- 构建服务提供者集群
+├── springcloud-study-provider-dept-8002 -- 构建服务提供者集群
+├── springcloud-study-provider-dept-8003 -- 构建服务提供者集群
+├── springcloud-study-consumer-dept-80 -- 构建服务消费者
+├── springcloud-study-consumer-dept-feign -- 构建服务消费者
+├── springcloud-study-provider-dept-hystrix-8001 -- Hystrix服务熔断
+├── springcloud-study-consumer-hystrix-dashboard -- Hystrix调用监控 
+├── springcloud-study-zuul-gateway-9527 -- Zuul路由网关 
+├── springcloud-study-config-3344 -- config服务端 
+└── springcloud-study-config-client-3355 -- config客户端
+```
+
+## 项目搭建
+
+见笔记：[SpringCloud学习笔记_V1](SpringCloud学习笔记_V1.md)
+
+## 项目启动
 

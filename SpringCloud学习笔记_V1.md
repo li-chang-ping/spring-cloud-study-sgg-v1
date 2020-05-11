@@ -1,3 +1,18 @@
+# SpringCloud学习笔记_V1
+
+## 一、工程环境搭建
+
+spring cloud版本：Dalston.SR1
+
+spring boot版本：1.5.19.RELEASE
+
+### 1、构建父工程 spring-cloud-study-sgg-v1
+
+新建 Maven 工程 spring-cloud-study-sgg-v1
+
+pom 文件，其中 packaging 必须是 pom
+
+```xml-dtd
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -7,9 +22,6 @@
     <groupId>org.lcp.springcloud</groupId>
     <artifactId>spring-cloud-study-sgg-v1</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <modules>
-        <module>spring-cloud-study-api</module>
-    </modules>
     <packaging>pom</packaging>
 
     <properties>
@@ -71,5 +83,8 @@
         </dependencies>
     </dependencyManagement>
 
-
 </project>
+```
+
+### 2、构建子工程 spring-cloud-study-api
+
