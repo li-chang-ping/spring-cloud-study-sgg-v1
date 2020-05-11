@@ -5,7 +5,7 @@
     <!-- 子类里面显示声明才能有明确的继承表现，无意外就是父类的默认版本否则自己定义 -->
     <parent>
         <artifactId>spring-cloud-study-sgg-v1</artifactId>
-        <groupId>org.lcp.springcloud</groupId>
+        <groupId>com.lcp.springcloud</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
