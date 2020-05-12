@@ -250,7 +250,8 @@ mybatis:
 
 spring:
   application:
-    name: microservicecloud-dept
+    # 应用名称
+    name: spring-cloud-provider-dept-8001
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource            # 当前数据源操作类型
     driver-class-name: com.mysql.cj.jdbc.Driver              # mysql驱动包
@@ -792,5 +793,171 @@ public class EurekaServerApp7001 {
         SpringApplication.run(EurekaServerApp7001.class, args);
     }
 }
+```
+
+##### 测试
+
+访问地址：http://localhost:7001
+
+![image-20200512101626361](SpringCloud学习笔记_V1.assets/image-20200512101626361.png)
+
+#### 2、修改 xxx-8001，将其注册到 xxx-eureka-7001
+
+##### 修改 pom.xml
+
+增加以下内容
+
+```xml
+<!-- 添加依赖，将微服务provider侧注册进eureka -->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-eureka</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-config</artifactId>
+</dependency>
+```
+
+##### 修改 application.yaml
+
+增加以下内容
+
+```yaml
+eureka:
+  # 客户端注册进eureka服务列表内
+  client: 
+    service-url: 
+      defaultZone: http://localhost:7001/eureka
+```
+
+##### 修改 DeptProviderApp8001
+
+在启动类上添加 `@EnableEurekaClient` 表示这是一个 Eureka 客户端，服务启动后会自动注册到 Eureka Server
+
+```java
+package com.lcp.springcloud;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+
+/**
+ * {@code @EnableEurekaClient} 表示这是一个 Eureka 客户端，服务启动后会自动注册到 Eureka Server
+ */
+@SpringBootApplication
+@EnableEurekaClient
+public class DeptProviderApp8001 {
+    public static void main(String[] args) {
+        SpringApplication.run(DeptProviderApp8001.class, args);
+    }
+}
+```
+
+##### 测试
+
+先启动 Eureka Server，再启动本模块，浏览器访问：http://localhost:7001
+
+![image-20200512105609920](SpringCloud学习笔记_V1.assets/image-20200512105609920.png)
+
+PS：Application 对应 application.yaml 中的 spring.application.name
+
+#### 3、Actuator 与注册微服务信息完善
+
+Eureka Server 的页面目前存在的问题
+
+![image-20200512111332162](SpringCloud学习笔记_V1.assets/image-20200512111332162.png)
+
+1. Status 中含有主机名称
+2. 超链接中没有 IP
+3. 单击超链接跳转到对应微服务的 info 页面时为 404 ErrorPage
+
+##### 主机名称:服务名称修改
+
+修改 application.yaml
+
+```yaml
+eureka:
+  # 客户端注册进eureka服务列表内
+  client:
+    service-url:
+      defaultZone: http://localhost:7001/eureka
+  instance:
+    # 自定义服务名称信息
+    instance-id: provider-dept-8001
+```
+
+修改后
+
+![image-20200512112557673](SpringCloud学习笔记_V1.assets/image-20200512112557673.png)
+
+##### 访问信息有IP提示
+
+修改 application.yaml
+
+```yaml
+eureka:
+  # 客户端注册进eureka服务列表内
+  client:
+    service-url:
+      defaultZone: http://localhost:7001/eureka
+  instance:
+    # 自定义服务名称信息
+    instance-id: provider-dept-8001
+    # 访问路径可以显示IP地址
+    prefer-ip-address: true
+```
+
+修改后
+
+![image-20200512112839841](SpringCloud学习笔记_V1.assets/image-20200512112839841.png)
+
+##### 微服务 info 内容详细信息
+
+修改  spring-cloud-provider-dept-8001 的 pom.xml 添加以下依赖
+
+```xml
+ <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+```
+
+修改父工程的 pom.xml 添加 build 信息
+
+```xml
+<build>
+        <finalName>spring-cloud-study-sgg-v1</finalName>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <delimiters>
+                        <!-- 注意是 delimiter 不是 delimit -->
+                        <delimiter>$</delimiter>
+                    </delimiters>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+```
+
+> 需要注意的是 delimiter 不要写成 delimit，不然下面的 $project.version$ 会取不到值
+
+修改  spring-cloud-provider-dept-8001 的 application.yaml 添加以下内容
+
+```yaml
+info:
+  app.name: spring-cloud-study-sgg-v1
+  company.name: www.lichangping.top
+  build.artifactId: $project.artifactId$
+  build.version: $project.version$
 ```
 

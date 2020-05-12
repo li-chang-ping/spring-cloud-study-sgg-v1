@@ -9,7 +9,8 @@ mybatis:
 
 spring:
   application:
-    name: microservicecloud-dept
+    # 应用名称
+    name: spring-cloud-provider-dept-8001
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource            # 当前数据源操作类型
     driver-class-name: com.mysql.cj.jdbc.Driver              # mysql驱动包
@@ -21,3 +22,20 @@ spring:
       initial-size: 5                                       # 初始化连接数
       max-total: 5                                          # 最大连接数
       max-wait-millis: 200                                  # 等待连接获取的最大超时时间
+
+eureka:
+  # 客户端注册进eureka服务列表内
+  client:
+    service-url:
+      defaultZone: http://localhost:7001/eureka
+  instance:
+    # 自定义服务名称信息
+    instance-id: provider-dept-8001
+    # 访问路径可以显示IP地址
+    prefer-ip-address: true
+
+info:
+  app.name: spring-cloud-study-sgg-v1
+  company.name: www.lichangping.top
+  build.artifactId: $project.artifactId$
+  build.version: $project.version$
