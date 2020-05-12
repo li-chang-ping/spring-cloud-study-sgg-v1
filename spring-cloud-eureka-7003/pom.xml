@@ -3,24 +3,19 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <groupId>com.lcp.springcloud</groupId>
         <artifactId>spring-cloud-study-sgg-v1</artifactId>
+        <groupId>com.lcp.springcloud</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>spring-cloud-provider-consumer-80</artifactId>
+    <artifactId>spring-cloud-eureka-7003</artifactId>
 
     <dependencies>
-        <!-- 自己定义的api -->
+        <!--eureka-server服务端 -->
         <dependency>
-            <groupId>com.lcp.springcloud</groupId>
-            <artifactId>spring-cloud-study-api</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-eureka-server</artifactId>
         </dependency>
         <!-- 修改后立即生效，热部署 -->
         <dependency>
@@ -32,5 +27,4 @@
             <artifactId>spring-boot-devtools</artifactId>
         </dependency>
     </dependencies>
-
 </project>

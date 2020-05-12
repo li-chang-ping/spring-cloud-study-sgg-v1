@@ -244,7 +244,7 @@ server:
 
 mybatis:
   config-location: classpath:mybatis/mybatis.cfg.xml        # mybatis配置文件所在路径
-  type-aliases-package: com.atguigu.springcloud.entities    # 所有Entity别名类所在包
+  type-aliases-package: com.atguigu.com.lcp.springcloud.entities    # 所有Entity别名类所在包
   mapper-locations:
     - classpath:mybatis/mapper/**/*.xml                       # mapper映射文件
 
@@ -1106,7 +1106,175 @@ public Object discovery() {
 
 #### 构建集群
 
-新建 spring-cloud-eureka-7002 spring-cloud-eureka-7003
+##### 新建两个 Eureka Server
+
+以 spring-cloud-eureka-7001 为模板，新建 spring-cloud-eureka-7002 spring-cloud-eureka-7003
+
+##### 修改映射配置
+
+编辑 hosts 文件
+
+```
+127.0.0.1 eureka7001.com
+127.0.0.1 eureka7002.com
+127.0.0.1 eureka7003.com
+```
+
+##### 修改三个 Eureka 的 yaml配置
+
+7001 application.yaml
+
+```yaml
+server:
+  port: 7001
+
+eureka:
+  instance:
+    # eureka服务端的实例名称
+    hostname: eureka7001.com
+  client:
+    # false表示不向注册中心注册自己。
+    register-with-eureka: false
+    # false表示自己端就是注册中心，我的职责就是维护服务实例，并不需要去检索服务。
+    fetch-registry: false
+    service-url:
+      # 设置与Eureka Server交互的地址查询服务和注册服务都需要依赖这个地址。
+      defaultZone: http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+
+spring:
+  application:
+    name: spring-cloud-eureka-7001
+```
+
+7002 application.yaml
+
+```yaml
+server:
+  port: 7002
+
+eureka:
+  instance:
+    # eureka服务端的实例名称
+    hostname: eureka7002.com
+  client:
+    # false表示不向注册中心注册自己。
+    register-with-eureka: false
+    # false表示自己端就是注册中心，我的职责就是维护服务实例，并不需要去检索服务。
+    fetch-registry: false
+    service-url:
+      # 设置与Eureka Server交互的地址查询服务和注册服务都需要依赖这个地址。
+      # defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7003.com:7003/eureka/
+
+spring:
+  application:
+    name: spring-cloud-eureka-7002
+```
+
+7003 application.yaml
+
+```yaml
+server:
+  port: 7003
+
+eureka:
+  instance:
+    # eureka服务端的实例名称
+    hostname: eureka7003.com
+  client:
+    # false表示不向注册中心注册自己。
+    register-with-eureka: false
+    # false表示自己端就是注册中心，我的职责就是维护服务实例，并不需要去检索服务。
+    fetch-registry: false
+    service-url:
+      # 设置与Eureka Server交互的地址查询服务和注册服务都需要依赖这个地址。
+      # defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/
+
+spring:
+  application:
+    name: spring-cloud-eureka-7003
+```
+
+##### 将 spring-cloud-provider-dept-8001 发布到三台 Eureka Server 中
+
+修改 spring-cloud-provider-dept-8001 的 yaml 配置
+
+```yaml
+eureka:
+  # 客户端注册进eureka服务列表内
+  client:
+    service-url:
+      # defaultZone: http://localhost:7001/eureka
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+```
+
+##### 测试
+
+访问：http://eureka7003.com:7003/，http://eureka7002.com:7002/，http://eureka7002.com:7002/
+
+如果集群配置成功，则应在每一个的页面中看到另外两个 Eureka Server，例如下图
+
+![image-20200512203249748](SpringCloud学习笔记_V1.assets/image-20200512203249748.png)
+
+##### 关于 `unavailable-replicas`【重要】
+
+在上一步成功的前提下，观察 General Info 我们可以发现，另外的两个节点虽然注册成功了，但却都是 unavailable-replicas，available-replicas 为空，这说明集群虽然搭建成功，但并不是高可用
+
+![image-20200512204640920](SpringCloud学习笔记_V1.assets/image-20200512204640920.png)
+
+参考：https://blog.csdn.net/liupeifeng3514/article/details/85273961
+
+生产环境部署可参考：https://www.cnblogs.com/lonelyJay/tag/springcloud/
+
+继续修改三个 Eurake 的 yaml，将单节点情况下的 `register-with-eureka`由 false 改为 true
+
+```yaml
+eureka:
+  instance:
+    hostname: eureka7003.com
+  client:
+    register-with-eureka: true
+```
+
+>spring.application.name：这项要么不设，要么设成一样
+>
+>prefer-ip-address：要么不设，要么为 false
+
+修改后的 application.yaml ，以 spring-cloud-eureka-7001 为例
+
+```yaml
+server:
+  port: 7002
+
+eureka:
+  instance:
+    # eureka服务端的实例名称
+    hostname: eureka7002.com
+    instance-id: eureka-7002
+  #    prefer-ip-address: false
+  client:
+    # false表示不向注册中心注册自己，配置集群时需设为 true
+    register-with-eureka: true
+    # false表示自己端就是注册中心，我的职责就是维护服务实例，并不需要去检索服务。
+    fetch-registry: false
+    service-url:
+      # 设置与Eureka Server交互的地址查询服务和注册服务都需要依赖这个地址。
+      # defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7003.com:7003/eureka/
+
+spring:
+  application:
+    name: spring-cloud-eureka
+```
+
+此时集群状态，以 spring-cloud-eureka-7001 为例
+
+![image-20200512215245501](SpringCloud学习笔记_V1.assets/image-20200512215245501.png)
+
+可以看到另外两个节点均在 `available-replicas` 中，高可用完成。
+
+此时停掉 spring-cloud-eureka-7001，去 http://eureka7002.com:7002/ 查看，发现 spring-cloud-eureka-7001 出现在 unavailable-replicas 符合预期。
 
 
 
