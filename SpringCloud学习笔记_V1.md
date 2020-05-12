@@ -713,6 +713,24 @@ EurekaClient 是一个 Java 客户端，用于简化 Eureka Server 的交互，�
 2. Service Provider ：服务提供方，将自身服务注册到 Eureka Server，从而使服务消费方能够找到
 3. Service Consumer ：服务消费方，从 Eureka Server 获取注册服务列表，从而能够消费服务
 
+#### Eureka 自我保护机制
+
+现象
+
+![image-20200512151417688](SpringCloud学习笔记_V1.assets/image-20200512151417688.png)
+
+什么是自我保护模式？
+
+默认情况下，如果 Eureka Server 在一定时间内没有接收到某个微服务实例的心跳，Eureka Server 将会注销该实例（默认90秒）。但是当网络分区故障发生时，微服务与 Eureka Server 之间无法正常通信，以上行为可能变得非常危险了——因为微服务本身其实是健康的，此时本不应该注销这个微服务。Eureka 通过“自我保护模式”来解决这个问题——当 Eureka Server 节点在短时间内丢失过多客户端时（可能发生了网络分区故障），那么这个节点就会进入自我保护模式。一旦进入该模式，Eureka Server 就会保护服务注册表中的信息，不再删除服务注册表中的数据（也就是不会注销任何微服务）。当网络故障恢复后，该 Eureka Server节点会自动退出自我保护模式。
+
+在自我保护模式中，Eureka Server 会保护服务注册表中的信息，不再注销任何服务实例。当它收到的心跳数重新恢复到阈值以上时，该 Eureka Server 节点就会自动退出自我保护模式。它的设计哲学就是宁可保留错误的服务注册信息，也不盲目注销任何可能健康的服务实例。一句话讲解：好死不如赖活着
+
+综上，自我保护模式是一种应对网络异常的安全保护措施。它的架构哲学是宁可同时保留所有微服务（健康的微服务和不健康的微服务都会保留），也不盲目注销任何健康的微服务。使用自我保护模式，可以让 Eureka 集群更加的健壮、稳定。
+
+在Spring Cloud中，可以使用 `eureka.server.enable-self-preservation = false` 禁用自我保护模式。
+
+总结：某时刻一个微服务不可用了 eureka 不会立即清理，依旧会对该微服务的信息进行保存。
+
 ### 3、构建
 
 #### 1、构建服务注册中心模块 spring-cloud-eureka-7001
@@ -801,7 +819,9 @@ public class EurekaServerApp7001 {
 
 ![image-20200512101626361](SpringCloud学习笔记_V1.assets/image-20200512101626361.png)
 
-#### 2、修改 xxx-8001，将其注册到 xxx-eureka-7001
+#### 2、spring-cloud-provider-dept-8001 服务注册（register）
+
+修改 spring-cloud-provider-dept-8001 ，将其注册到 Eureka Server
 
 ##### 修改 pom.xml
 
@@ -960,4 +980,133 @@ info:
   build.artifactId: $project.artifactId$
   build.version: $project.version$
 ```
+
+#### 4、spring-cloud-provider-dept-8001 服务发现（discovery）
+
+对于注册进 eureka 中的服务，可以通用过服务发现来获取该服务的信息
+
+下面对 spring-cloud-provider-dept-8001 进行修改
+
+##### 修改 DeptController 
+
+增加以下内容
+
+```java
+@RestController
+@RequestMapping("/dept")
+public class DeptController {
+    // import org.springframework.cloud.client.discovery.DiscoveryClient;
+	@Resource
+    private DiscoveryClient discoveryClient;
+    
+    @GetMapping(value = "/discovery")
+    public Object discovery(){
+        List<String> services = discoveryClient.getServices();
+        System.out.println("*********" + services);
+
+        List<ServiceInstance> srvList = discoveryClient.getInstances("PROVIDER-DEPT-8001");
+        for (ServiceInstance element : srvList) {
+            System.out.println(element.getServiceId() + "\t" + element.getHost() + "\t" + element.getPort() + "\t"
+                    + element.getUri());
+        }
+        return this.discoveryClient;
+    }
+}
+```
+
+##### 修改 DeptProviderApp8001
+
+增加注解 `@EnableDiscoveryClient`
+
+```java
+/**
+ * {@code @EnableDiscoveryClient} 开启服务发现
+ */
+@SpringBootApplication
+@EnableEurekaClient
+@EnableDiscoveryClient
+public class DeptProviderApp8001 {
+    public static void main(String[] args) {
+        SpringApplication.run(DeptProviderApp8001.class, args);
+    }
+}
+```
+
+##### 测试
+
+先启动 EurekaServerApp7001，再启动 DeptProviderApp8001，访问：http://localhost:8001/dept/discovery
+
+```json
+{
+  "services": [
+    "spring-cloud-provider-dept-8001"
+  ],
+  "localServiceInstance": {
+    "host": "192.168.70.1",
+    "port": 8001,
+    "uri": "http://192.168.70.1:8001",
+    "serviceId": "spring-cloud-provider-dept-8001",
+    "metadata": {},
+    "secure": false
+  }
+}
+```
+
+##### 测试消费端调用服务发现
+
+修改 spring-cloud-provider-consumer-80 的 DeptControllerConsumer
+
+在类中增加下面这个方法
+
+```java
+@RequestMapping(value = "/dept/discovery")
+public Object discovery() {
+    return restTemplate.getForObject(REST_URL_PREFIX + "/dept/discovery", Object.class);
+}
+```
+
+访问：http://localhost/consumer/dept/discovery
+
+```json
+{
+  "services": [
+    "spring-cloud-provider-dept-8001"
+  ],
+  "localServiceInstance": {
+    "host": "192.168.70.1",
+    "port": 8001,
+    "uri": "http://192.168.70.1:8001",
+    "serviceId": "spring-cloud-provider-dept-8001",
+    "metadata": {},
+    "secure": false
+  }
+}
+```
+
+### 4、Eureka 集群配置
+
+#### 原理
+
+![image-20200512170656666](SpringCloud学习笔记_V1.assets/image-20200512170656666.png)
+
+基本原理
+
+上图是来自 Eureka 的官方架构图，这是基于集群配置的 Eureka
+
+- 处于不同节点的eureka通过Replicate进行数据同步 
+- Application Service为服务提供者 
+- Application Client为服务消费者 
+- Make Remote Call完成一次服务调用
+
+服务启动后向Eureka注册，Eureka Server会将注册信息向其他Eureka Server进行同步，当服务消费者要调用服务提供者，则向服务注册中心获取服务提供者地址，然后会将服务提供者地址缓存在本地，下次再调用时，则直接从本地缓存中取，完成一次调用。
+
+当服务注册中心Eureka Server检测到服务提供者因为宕机、网络原因不可用时，则在服务注册中心将服务置为DOWN状态，并把当前服务提供者状态向订阅者发布，订阅过的服务消费者更新本地缓存。
+
+服务提供者在启动后，周期性（默认30秒）向Eureka Server发送心跳，以证明当前服务是可用状态。Eureka Server在一定的时间（默认90秒）未收到客户端的心跳，则认为服务宕机，注销该实例。
+
+#### 构建集群
+
+新建 spring-cloud-eureka-7002 spring-cloud-eureka-7003
+
+
 

@@ -9,20 +9,20 @@
 
 ```
 spring-cloud-study-sgg-v1
-├── springcloud-study-api -- 构建公共子模块 + Hystrix服务降级
-├── springcloud-study-euraka-7001 -- Eureka集群
-├── springcloud-study-euraka-7002 -- Eureka集群
-├── springcloud-study-euraka-7003 -- Eureka集群
-├── springcloud-study-provider-dept-8001 -- 构建服务提供者集群
-├── springcloud-study-provider-dept-8002 -- 构建服务提供者集群
-├── springcloud-study-provider-dept-8003 -- 构建服务提供者集群
-├── springcloud-study-consumer-dept-80 -- 构建服务消费者
-├── springcloud-study-consumer-dept-feign -- 构建服务消费者
-├── springcloud-study-provider-dept-hystrix-8001 -- Hystrix服务熔断
-├── springcloud-study-consumer-hystrix-dashboard -- Hystrix调用监控 
-├── springcloud-study-zuul-gateway-9527 -- Zuul路由网关 
-├── springcloud-study-config-3344 -- config服务端 
-└── springcloud-study-config-client-3355 -- config客户端
+├── spring-cloud-api -- 构建公共子模块 + Hystrix服务降级
+├── spring-cloud-euraka-7001 -- Eureka集群
+├── spring-cloud-euraka-7002 -- Eureka集群
+├── spring-cloud-euraka-7003 -- Eureka集群
+├── spring-cloud-provider-dept-8001 -- 构建服务提供者集群
+├── spring-cloud-provider-dept-8002 -- 构建服务提供者集群
+├── spring-cloud-provider-dept-8003 -- 构建服务提供者集群
+├── spring-cloud-consumer-dept-80 -- 构建服务消费者
+├── spring-cloud-consumer-dept-feign -- 构建服务消费者
+├── spring-cloud-provider-dept-hystrix-8001 -- Hystrix服务熔断
+├── spring-cloud-consumer-hystrix-dashboard -- Hystrix调用监控 
+├── spring-cloud-zuul-gateway-9527 -- Zuul路由网关 
+├── spring-cloud-config-3344 -- config服务端 
+└── spring-cloud-config-client-3355 -- config客户端
 ```
 
 ## 项目搭建

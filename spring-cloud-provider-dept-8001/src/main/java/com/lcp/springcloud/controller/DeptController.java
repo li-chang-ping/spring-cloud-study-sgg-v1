@@ -2,6 +2,8 @@ package com.lcp.springcloud.controller;
 
 import com.lcp.springcloud.entities.Dept;
 import com.lcp.springcloud.service.DeptService;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -17,6 +19,9 @@ public class DeptController {
     @Resource
     private DeptService service;
 
+    @Resource
+    private DiscoveryClient discoveryClient;
+
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     public boolean add(@RequestBody Dept dept) {
         return service.add(dept);
@@ -30,5 +35,18 @@ public class DeptController {
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     public List<Dept> list() {
         return service.list();
+    }
+
+    @GetMapping(value = "/discovery")
+    public Object discovery(){
+        List<String> services = discoveryClient.getServices();
+        System.out.println("*********" + services);
+
+        List<ServiceInstance> srvList = discoveryClient.getInstances("PROVIDER-DEPT-8001");
+        for (ServiceInstance element : srvList) {
+            System.out.println(element.getServiceId() + "\t" + element.getHost() + "\t" + element.getPort() + "\t"
+                    + element.getUri());
+        }
+        return this.discoveryClient;
     }
 }
