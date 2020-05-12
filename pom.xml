@@ -11,6 +11,7 @@
         <module>spring-cloud-study-api</module>
         <module>spring-cloud-provider-dept-8001</module>
         <module>spring-cloud-provider-consumer-80</module>
+        <module>spring-cloud-eureka-7001</module>
     </modules>
     <packaging>pom</packaging>
 

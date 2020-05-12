@@ -675,7 +675,122 @@ Content-Type: application/json
 }
 ```
 
+## 二、Eureka
 
+### 1、是什么
 
+读音：[Eureka](https://translate.google.cn/#view=home&op=translate&sl=auto&tl=en&text=eureka)  美 [juˈriːkə] 
 
+Eureka是Netflix的一个子模块，也是核心模块之一。Eureka是一个基于REST的服务，用于定位服务，以实现云端中间层服务发现和故障转移。服务注册与发现对于微服务架构来说是非常重要的，有了服务发现与注册，只需要使用服务的标识符，就可以访问到服务，而不需要修改服务调用的配置文件了。功能类似于dubbo的注册中心，比如Zookeeper。
+
+Netflix 在设计 Eureka 是遵守 AP 原则
+
+[CAP原则]([https://baike.baidu.com/item/CAP%E5%8E%9F%E5%88%99/5712863?fr=aladdin](https://baike.baidu.com/item/CAP原则/5712863?fr=aladdin)) 又称 CAP 定理，指的是在一个分布式系统中， Consistency（一致性）、 Availability（可用性）、Partition tolerance（分区容错性），三者不可得兼。
+
+### 2、原理
+
+#### Eureka 基本架构
+
+Spring Cloud 封装了 Netflix 公司开发的 Eureka 模块来实现服务注册和发现（请对比 Zookeeper）。
+
+Eureka 采用了 C-S 的设计架构。Eureka Server 作为服务注册功能的服务器，它是服务注册中心。
+
+而系统中的其他微服务，使用 Eureka 的客户端连接到 Eureka Server 并维持心跳连接。这样系统的维护人员就可以通过 Eureka Server 来监控系统中各个微服务是否正常运行。SpringCloud 的一些其他模块（比如 Zuul）就可以通过 Eureka Server 来发现系统中的其他微服务，并执行相关的逻辑。（请注意和 Dubbo 的架构对比）
+
+<img src="SpringCloud学习笔记_V1.assets/image-20200512090836469.png" alt="image-20200512090836469" style="zoom:150%;" />
+
+<img src="SpringCloud学习笔记_V1.assets/图像.png" alt="图像" style="zoom:150%;" />
+
+Eureka 包含两个组件：`Eureka Server` 和 `Eureka Client`
+Eureka Server 提供服务注册服务，各个节点启动后，会在EurekaServer中进行注册，这样EurekaServer中的服务注册表中将会存储所有可用服务节点的信息，服务节点的信息可以在界面中直观的看到
+
+EurekaClient 是一个 Java 客户端，用于简化 Eureka Server 的交互，客户端同时也具备一个内置的、使用轮询(round-robin) 负载算法的负载均衡器。在应用启动后，将会向 Eureka Server 发送心跳（默认周期为30秒）。如果Eureka Server 在多个心跳周期内没有接收到某个节点的心跳，Eureka Server 将会从服务注册表中把这个服务节点移除（默认90秒）。
+
+#### 三大角色
+
+1. Eureka Server ：提供服务注册与发现
+2. Service Provider ：服务提供方，将自身服务注册到 Eureka Server，从而使服务消费方能够找到
+3. Service Consumer ：服务消费方，从 Eureka Server 获取注册服务列表，从而能够消费服务
+
+### 3、构建
+
+#### 1、构建服务注册中心模块 spring-cloud-eureka-7001
+
+##### 新建 Maven 工程 spring-cloud-eureka-7001
+
+`pom.xml`
+
+```xml-dtd
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>spring-cloud-study-sgg-v1</artifactId>
+        <groupId>com.lcp.springcloud</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>spring-cloud-eureka-7001</artifactId>
+
+    <dependencies>
+        <!--eureka-server服务端 -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-eureka-server</artifactId>
+        </dependency>
+        <!-- 修改后立即生效，热部署 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>springloaded</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
+```
+
+##### application.yaml
+
+```yaml
+server:
+  port: 7001
+
+eureka:
+  instance:
+    # eureka服务端的实例名称
+    hostname: localhost
+  client:
+    # false表示不向注册中心注册自己。
+    register-with-eureka: false
+    # false表示自己端就是注册中心，我的职责就是维护服务实例，并不需要去检索服务。
+    fetch-registry: false
+    service-url:
+      # 设置与Eureka Server交互的地址查询服务和注册服务都需要依赖这个地址。
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+```
+
+##### EurekaServerApp7001 主启动类
+
+```java
+package com.lcp.springcloud;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+/**
+ * EurekaServer服务器端启动类,接受其它微服务注册进来
+ */
+@SpringBootApplication
+@EnableEurekaServer
+public class EurekaServerApp7001 {
+    public static void main(String[] args) {
+        SpringApplication.run(EurekaServerApp7001.class, args);
+    }
+}
+```
 
