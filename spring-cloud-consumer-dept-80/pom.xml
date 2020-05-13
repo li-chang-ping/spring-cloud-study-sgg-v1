@@ -16,7 +16,7 @@
         <!-- 自己定义的api -->
         <dependency>
             <groupId>com.lcp.springcloud</groupId>
-            <artifactId>spring-cloud-study-api</artifactId>
+            <artifactId>spring-cloud-api</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>

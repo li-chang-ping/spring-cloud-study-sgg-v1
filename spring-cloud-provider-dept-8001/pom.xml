@@ -15,7 +15,7 @@
         <!-- 引入自己定义的 api 通用包，可以使用 Dept 部门 Entity -->
         <dependency>
             <groupId>com.lcp.springcloud</groupId>
-            <artifactId>spring-cloud-study-api</artifactId>
+            <artifactId>spring-cloud-api</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

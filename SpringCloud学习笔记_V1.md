@@ -88,9 +88,9 @@ spring boot版本：1.5.19.RELEASE
 </project>
 ```
 
-### 2、构建公共子模块 spring-cloud-study-api
+### 2、构建公共子模块 spring-cloud-api
 
-#### 1、新建 Maven 工程 spring-cloud-study-api
+#### 1、新建 Maven 工程 spring-cloud-api
 
 `pom.xml` 文件
 
@@ -108,7 +108,7 @@ spring boot版本：1.5.19.RELEASE
     <modelVersion>4.0.0</modelVersion>
 
     <!-- 当前Module我自己叫什么名字 -->
-    <artifactId>spring-cloud-study-api</artifactId>
+    <artifactId>spring-cloud-api</artifactId>
 
     <!-- 当前Module需要用到的jar包，按自己需求添加，如果父类已经包含了，可以不用写版本号 -->
     <dependencies>
@@ -187,7 +187,7 @@ public class Dept implements Serializable { // 必须序列化
         <!-- 引入自己定义的 api 通用包，可以使用 Dept 部门 Entity -->
         <dependency>
             <groupId>com.lcp.springcloud</groupId>
-            <artifactId>spring-cloud-study-api</artifactId>
+            <artifactId>spring-cloud-api</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -516,7 +516,7 @@ public class DeptProvider8001 {
         <!-- 自己定义的api -->
         <dependency>
             <groupId>com.lcp.springcloud</groupId>
-            <artifactId>spring-cloud-study-api</artifactId>
+            <artifactId>spring-cloud-api</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -638,7 +638,7 @@ public class DeptConsumerApp80 {
 }
 ```
 
-6、测试
+#### 6、测试
 
 启动服务进行测试，上一个服务也要启动
 
@@ -1346,11 +1346,11 @@ Ribbon 就属于进程内 LB，它只是一个类库，集成于消费方进程�
 
 https://github.com/Netflix/ribbon/wiki/Getting-Started
 
-### 2、初步配置
+### 2、初步配置 
 
-#### A、修改 spring-cloud-consumer-dept-80
+修改 spring-cloud-consumer-dept-80
 
-##### 修改 pom.xml
+#### 修改 pom.xml
 
 增加 Ribbon 相关依赖
 
@@ -1370,7 +1370,7 @@ https://github.com/Netflix/ribbon/wiki/Getting-Started
 </dependency>
 ```
 
-##### 修改 application.yaml
+#### 修改 application.yaml
 
 追加 eureka 的服务注册地址
 
@@ -1382,7 +1382,7 @@ eureka:
       defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
 ```
 
-##### 修改 ConfigBean
+#### 修改 ConfigBean
 
 在 ConfigBean 上加上新注解 @LoadBalanced，使其获得 Rest 时加入 Ribbon 的配置
 
@@ -1397,7 +1397,7 @@ public class ConfigBean {
 }
 ```
 
-##### 修改 DeptConsumerApp80
+#### 修改 DeptConsumerApp80
 
 主启动类 DeptConsumerApp80 添加 @EnableEurekaClient
 
@@ -1411,7 +1411,7 @@ public class DeptConsumerApp80 {
 }
 ```
 
-##### 修改 DeptControllerConsumer
+#### 修改 DeptControllerConsumer
 
 修改 REST_URL_PREFIX
 
@@ -1425,7 +1425,43 @@ public class DeptConsumerApp80 {
  private static final String REST_URL_PREFIX = "http://SPRING-CLOUD-PROVIDER-DEPT";
 ```
 
+#### 测试
 
+1. 访问：http://localhost/consumer/list
+
+   ```json
+   [{"deptno":1,"dname":"开发部","db_source":"cloudDB01"},
+    ......
+    {"deptno":10,"dname":"Test2","db_source":"cloudDB01"}]
+   ```
+
+2. 访问：http://localhost/consumer/get/1
+
+   ```json
+   {"deptno":1,"dname":"开发部","db_source":"cloudDB01"}
+   ```
+
+3. 访问：http://localhost/consumer/add，rest-api.http 如下
+
+   ```http
+   POST http://localhost/consumer/add
+   Content-Type: application/json
+   
+   {
+       "dname": "Test3",
+       "db_source": "cloudDB01"
+   }
+   ```
+
+   结果
+
+   ```
+   true
+   ```
+
+#### 小结
+
+Ribbon 和 Eureka 整合后 Consumer 可以直接根据服务名调用服务，而不用关心具体的 IP 和端口号
 
 
 
