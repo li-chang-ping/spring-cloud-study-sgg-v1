@@ -642,15 +642,15 @@ public class DeptConsumerApp80 {
 
 启动服务进行测试，上一个服务也要启动
 
-1. http://localhost:8001/dept/get/2
+1. 访问：http://localhost:8001/dept/get/2
 
-   结果同上
+   结果 一.1.11
 
-2. http://localhost:8001/dept/list
+2. 访问：http://localhost:8001/dept/list
 
-   结果同上
+   结果同 一.1.11
 
-3. http://localhost/consumer/add
+3. 访问：http://localhost/consumer/add
 
    ```
    true
@@ -815,7 +815,7 @@ public class EurekaServerApp7001 {
 
 ##### 测试
 
-访问地址：http://localhost:7001
+访问地址：http://localhost:7001，结果如下
 
 ![image-20200512101626361](SpringCloud学习笔记_V1.assets/image-20200512101626361.png)
 
@@ -876,7 +876,7 @@ public class DeptProviderApp8001 {
 
 ##### 测试
 
-先启动 Eureka Server，再启动本模块，浏览器访问：http://localhost:7001
+先启动 Eureka Server，再启动本模块，浏览器访问：http://localhost:7001，结果如下
 
 ![image-20200512105609920](SpringCloud学习笔记_V1.assets/image-20200512105609920.png)
 
@@ -1034,7 +1034,7 @@ public class DeptProviderApp8001 {
 
 ##### 测试
 
-先启动 EurekaServerApp7001，再启动 DeptProviderApp8001，访问：http://localhost:8001/dept/discovery
+先启动 EurekaServerApp7001，再启动 DeptProviderApp8001，访问：http://localhost:8001/dept/discovery，结果如下
 
 ```json
 {
@@ -1065,7 +1065,7 @@ public Object discovery() {
 }
 ```
 
-访问：http://localhost/consumer/dept/discovery
+访问：http://localhost/consumer/dept/discovery，结果如下
 
 ```json
 {
@@ -1346,7 +1346,7 @@ Ribbon 就属于进程内 LB，它只是一个类库，集成于消费方进程�
 
 https://github.com/Netflix/ribbon/wiki/Getting-Started
 
-### 2、初步配置 
+### 2、Ribbon 初步配置 
 
 修改 spring-cloud-consumer-dept-80
 
@@ -1427,7 +1427,7 @@ public class DeptConsumerApp80 {
 
 #### 测试
 
-1. 访问：http://localhost/consumer/list
+1. 访问：http://localhost/consumer/list，结果如下
 
    ```json
    [{"deptno":1,"dname":"开发部","db_source":"cloudDB01"},
@@ -1435,7 +1435,7 @@ public class DeptConsumerApp80 {
     {"deptno":10,"dname":"Test2","db_source":"cloudDB01"}]
    ```
 
-2. 访问：http://localhost/consumer/get/1
+2. 访问：http://localhost/consumer/get/1，结果如下
 
    ```json
    {"deptno":1,"dname":"开发部","db_source":"cloudDB01"}
@@ -1453,7 +1453,7 @@ public class DeptConsumerApp80 {
    }
    ```
 
-   结果
+   结果如下
 
    ```
    true
@@ -1462,6 +1462,115 @@ public class DeptConsumerApp80 {
 #### 小结
 
 Ribbon 和 Eureka 整合后 Consumer 可以直接根据服务名调用服务，而不用关心具体的 IP 和端口号
+
+### 3、Ribbon 负载均衡
+
+#### 架构说明
+
+![图像](SpringCloud学习笔记_V1.assets/图像-1589370910024.png)
+
+Ribbon 在工作时分成两步
+
+第一步先选择 Eureka Server，它优先选择在同一个区域内负载较少的 Server.
+
+第二步再根据用户指定的策略，在从 Server 取到的服务注册列表中选择一个地址。
+
+其中 Ribbon 提供了多种策略：比如轮询、随机和根据响应时间加权。
+
+#### 新建 spring-cloud-provider-dept-8002/8003
+
+参考 spring-cloud-provider-dept-8001，新建模块 spring-cloud-provider-dept-8002，spring-cloud-provider-dept-8003
+
+#### 新建 cloudDB02，cloudDB03
+
+新建 spring-cloud-provider-dept-8002/8003 各自的数据库 cloudDB02/cloudDB03，sql 脚本如下
+
+cloudDB02.sql
+
+```sql
+DROP DATABASE IF EXISTS cloudDB02;
+CREATE DATABASE cloudDB02 CHARACTER SET UTF8;
+USE cloudDB02;
+ 
+CREATE TABLE dept
+(
+  deptno BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  dname VARCHAR(60),
+  db_source   VARCHAR(60)
+);
+ 
+INSERT INTO dept(dname,db_source) VALUES('开发部',DATABASE());
+INSERT INTO dept(dname,db_source) VALUES('人事部',DATABASE());
+INSERT INTO dept(dname,db_source) VALUES('财务部',DATABASE());
+INSERT INTO dept(dname,db_source) VALUES('市场部',DATABASE());
+INSERT INTO dept(dname,db_source) VALUES('运维部',DATABASE());
+ 
+SELECT * FROM dept;
+```
+
+cloudDB03.sql
+
+```sql
+DROP DATABASE IF EXISTS cloudDB03;
+CREATE DATABASE cloudDB03 CHARACTER SET UTF8; 
+USE cloudDB03;
+
+CREATE TABLE dept
+(
+  deptno BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  dname VARCHAR(60),
+  db_source   VARCHAR(60)
+);
+ 
+INSERT INTO dept(dname,db_source) VALUES('开发部',DATABASE());
+INSERT INTO dept(dname,db_source) VALUES('人事部',DATABASE());
+INSERT INTO dept(dname,db_source) VALUES('财务部',DATABASE());
+INSERT INTO dept(dname,db_source) VALUES('市场部',DATABASE());
+INSERT INTO dept(dname,db_source) VALUES('运维部',DATABASE());
+ 
+SELECT * FROM dept;
+```
+
+#### 修改 application.yaml
+
+修改 spring-cloud-provider-dept-8002，spring-cloud-provider-dept-8002，spring-cloud-provider-dept-8003 的 yaml
+
+保证下面一项是一致的
+
+```yaml
+spring:
+  application:
+    # 应用名称
+    name: spring-cloud-provider-dept
+```
+
+spring-cloud-provider-dept-8002 端口 8002，数据库 cloudDB02。
+
+spring-cloud-provider-dept-8003 端口 8003，数据库 cloudDB03。
+
+#### Dept 微服务集群自测
+
+1. 访问：http://localhost:8001/dept/list，结果如下
+
+   ```json
+   [{"deptno":1,"dname":"开发部","db_source":"cloudDB03"},
+    ......
+    {"deptno":5,"dname":"运维部","db_source":"cloudDB03"}]
+   ```
+
+2. 访问：http://localhost:8002/dept/list，结果同上
+
+3. 访问：http://localhost:8003/dept/list，结果同上
+
+#### 测试客户端通过 Ribbon 负载均衡访问 Dept 集群
+
+
+
+
+
+
+
+
 
 
 
