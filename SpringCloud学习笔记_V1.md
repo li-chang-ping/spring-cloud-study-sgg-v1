@@ -1219,7 +1219,7 @@ eureka:
 
 ##### 关于 `unavailable-replicas`【重要】
 
-在上一步成功的前提下，观察 General Info 我们可以发现，另外的两个节点虽然注册成功了，但却都是 unavailable-replicas，available-replicas 为空，这说明集群虽然搭建成功，但并不是高可用
+在上一步成功的前提下，观察 General Info 我们可以发现，另外的两个节点虽然注册成功了，但却都是 unavailable-replicas，available-replicas 为空，这说明集群虽然搭建成功，但并不是高可用。
 
 ![image-20200512204640920](SpringCloud学习笔记_V1.assets/image-20200512204640920.png)
 
@@ -1227,7 +1227,7 @@ eureka:
 
 生产环境部署可参考：https://www.cnblogs.com/lonelyJay/tag/springcloud/
 
-继续修改三个 Eurake 的 yaml，将单节点情况下的 `register-with-eureka`由 false 改为 true
+继续修改三个 Eurake 的 yaml，将单节点情况下的 `register-with-eureka` `fetch-registry` 由 false 改为 true
 
 ```yaml
 eureka:
@@ -1235,6 +1235,7 @@ eureka:
     hostname: eureka7003.com
   client:
     register-with-eureka: true
+    fetch-registry: true
 ```
 
 >spring.application.name：这项要么不设，要么设成一样
@@ -1276,5 +1277,22 @@ spring:
 
 此时停掉 spring-cloud-eureka-7001，去 http://eureka7002.com:7002/ 查看，发现 spring-cloud-eureka-7001 出现在 unavailable-replicas 符合预期。
 
+> 如果关闭后，spring-cloud-eureka-7001 仍然长时间位于 `available-replicas` 中，可以尝试添加以下配置，这些配置仅用于测试环境
+>
+> ```yaml
+> eureka:
+> 	server:
+>         # 测试时关闭自我保护机制，保证不可用服务及时剔除
+>         enable-self-preservation: false
+>         # 缩短 eureka server 清理无效节点的时间间隔，默认60000毫秒，即60秒，现在调整为间隔2秒
+>         eviction-interval-timer-in-ms: 5000
+>     # 要想见效再快一些，可以添加下面这些配置
+>     instance:
+> 		lease-renewal-interval-in-seconds: 5
+> 		lease-expiration-duration-in-seconds: 10
+> ```
+>
+> 参考：spring cloud eureka 参数配置：https://www.jianshu.com/p/e2bebfb0d075
 
+![image-20200513093250070](SpringCloud学习笔记_V1.assets/image-20200513093250070.png)
 

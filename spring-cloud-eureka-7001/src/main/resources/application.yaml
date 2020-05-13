@@ -18,6 +18,12 @@ eureka:
       # defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
       defaultZone: http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
 
-#spring:
-#  application:
-#    name: spring-cloud-eureka
+  server:
+    # 测试时关闭自我保护机制，保证不可用服务及时剔除
+    enable-self-preservation: false
+    # eureka server清理无效节点的时间间隔，默认60000毫秒，即60秒
+    eviction-interval-timer-in-ms: 5000
+
+spring:
+  application:
+    name: spring-cloud-eureka
