@@ -1282,17 +1282,28 @@ spring:
 > ```yaml
 > eureka:
 > 	server:
->         # 测试时关闭自我保护机制，保证不可用服务及时剔除
->         enable-self-preservation: false
->         # 缩短 eureka server 清理无效节点的时间间隔，默认60000毫秒，即60秒，现在调整为间隔2秒
->         eviction-interval-timer-in-ms: 5000
->     # 要想见效再快一些，可以添加下面这些配置
->     instance:
+>      # 测试时关闭自我保护机制，保证不可用服务及时剔除
+>      enable-self-preservation: false
+>      # 缩短 eureka server 清理无效节点的时间间隔，默认60000毫秒，即60秒，现在调整为间隔2秒
+>      eviction-interval-timer-in-ms: 5000
+>  # 要想见效再快一些，可以添加下面这些配置
+>  instance:
 > 		lease-renewal-interval-in-seconds: 5
 > 		lease-expiration-duration-in-seconds: 10
 > ```
 >
 > 参考：spring cloud eureka 参数配置：https://www.jianshu.com/p/e2bebfb0d075
+>
+> 因此可以修改所有 client，加入以下配置，以便测试时更快看到变化
+>
+> ```yaml
+> eureka:
+>   instance:
+>   	# 心跳时间，即服务续约间隔时间（缺省为30s）
+>     lease-renewal-interval-in-seconds: 5      
+>     # 发呆时间，即服务续约到期时间（缺省为90s）
+>     lease-expiration-duration-in-seconds: 10  
+> ```
 
 ![image-20200513093250070](SpringCloud学习笔记_V1.assets/image-20200513093250070.png)
 
