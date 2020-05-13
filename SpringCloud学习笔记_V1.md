@@ -251,7 +251,7 @@ mybatis:
 spring:
   application:
     # 应用名称
-    name: spring-cloud-provider-dept-8001
+    name: spring-cloud-provider-dept
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource            # 当前数据源操作类型
     driver-class-name: com.mysql.cj.jdbc.Driver              # mysql驱动包
@@ -492,9 +492,9 @@ public class DeptProvider8001 {
    > ###
    > ```
 
-### 4、构建部门微服务消费者模块 spring-cloud-provider-consumer-80
+### 4、构建部门微服务消费者模块 spring-cloud-consumer-dept-80
 
-#### 1、新建 Maven 工程 spring-cloud-provider-consumer-80
+#### 1、新建 Maven 工程 spring-cloud-consumer-dept-80
 
 `pom.xml`
 
@@ -510,7 +510,7 @@ public class DeptProvider8001 {
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>spring-cloud-provider-consumer-80</artifactId>
+    <artifactId>spring-cloud-consumer-dept-80</artifactId>
 
     <dependencies>
         <!-- 自己定义的api -->
@@ -676,11 +676,11 @@ Content-Type: application/json
 }
 ```
 
-## 二、Eureka
+## 二、Eureka 服务注册与发现
 
 ### 1、是什么
 
-读音：[Eureka](https://translate.google.cn/#view=home&op=translate&sl=auto&tl=en&text=eureka)  美 [juˈriːkə] 
+读音：[eureka](https://fanyi.baidu.com/#en/zh/eureka)  美 [juˈriːkə] 
 
 Eureka是Netflix的一个子模块，也是核心模块之一。Eureka是一个基于REST的服务，用于定位服务，以实现云端中间层服务发现和故障转移。服务注册与发现对于微服务架构来说是非常重要的，有了服务发现与注册，只需要使用服务的标识符，就可以访问到服务，而不需要修改服务调用的配置文件了。功能类似于dubbo的注册中心，比如Zookeeper。
 
@@ -1039,13 +1039,13 @@ public class DeptProviderApp8001 {
 ```json
 {
   "services": [
-    "spring-cloud-provider-dept-8001"
+    "spring-cloud-provider-dept"
   ],
   "localServiceInstance": {
     "host": "192.168.70.1",
     "port": 8001,
     "uri": "http://192.168.70.1:8001",
-    "serviceId": "spring-cloud-provider-dept-8001",
+    "serviceId": "spring-cloud-provider-dept",
     "metadata": {},
     "secure": false
   }
@@ -1054,7 +1054,7 @@ public class DeptProviderApp8001 {
 
 ##### 测试消费端调用服务发现
 
-修改 spring-cloud-provider-consumer-80 的 DeptControllerConsumer
+修改 spring-cloud-consumer-dept-80 的 DeptControllerConsumer
 
 在类中增加下面这个方法
 
@@ -1070,13 +1070,13 @@ public Object discovery() {
 ```json
 {
   "services": [
-    "spring-cloud-provider-dept-8001"
+    "spring-cloud-provider-dept"
   ],
   "localServiceInstance": {
     "host": "192.168.70.1",
     "port": 8001,
     "uri": "http://192.168.70.1:8001",
-    "serviceId": "spring-cloud-provider-dept-8001",
+    "serviceId": "spring-cloud-provider-dept",
     "metadata": {},
     "secure": false
   }
@@ -1295,4 +1295,137 @@ spring:
 > 参考：spring cloud eureka 参数配置：https://www.jianshu.com/p/e2bebfb0d075
 
 ![image-20200513093250070](SpringCloud学习笔记_V1.assets/image-20200513093250070.png)
+
+### 5、作为服务注册中心，Eureka 比 Zookeeper 好在哪里
+
+著名的CAP理论指出，一个分布式系统不可能同时满足 C（一致性）、A（可用性）和 P（分区容错性）。由于分区容错性 P 在是分布式系统中必须要保证的，因此我们只能在 A 和 C 之间进行权衡，因此 `Zookeeper 保证的是 CP`，`Eureka 则是AP`。
+
+Zookeeper 保证 CP
+
+当向注册中心查询服务列表时，我们可以容忍注册中心返回的是几分钟以前的注册信息，但不能接受服务直接down 掉不可用。也就是说，服务注册功能对可用性的要求要高于一致性。但是 zk 会出现这样一种情况，当 master 节点因为网络故障与其他节点失去联系时，剩余节点会重新进行 leader 选举。问题在于，选举 leader 的时间太长，30 ~ 120s, 且选举期间整个 zk 集群都是不可用的，这就导致在选举期间注册服务瘫痪。在云部署的环境下，因网络问题使得 zk 集群失去 master 节点是较大概率会发生的事，虽然服务能够最终恢复，但是漫长的选举时间导致的注册长期不可用是不能容忍的。
+
+Eureka 保证 AP
+
+Eureka 看明白了这一点，因此在设计时就优先保证可用性。Eureka 各个节点都是平等的，几个节点挂掉不会影响正常节点的工作，剩余的节点依然可以提供注册和查询服务。而 Eureka 的客户端在向某个 Eureka 注册或时如果发现连接失败，则会自动切换至其它节点，只要有一台 Eureka 还在，就能保证注册服务可用(保证可用性)，只不过查到的信息可能不是最新的(不保证强一致性)。除此之外，Eureka 还有一种自我保护机制，如果在15分钟内超过85%的节点都没有正常的心跳，那么 Eureka 就认为客户端与注册中心出现了网络故障，此时会出现以下几种情况： 
+
+1. Eureka 不再从注册列表中移除因为长时间没收到心跳而应该过期的服务 
+2. Eureka 仍然能够接受新服务的注册和查询请求，但是不会被同步到其它节点上(即保证当前节点依然可用) 
+3. 当网络稳定时，当前实例新的注册信息会被同步到其它节点中
+
+**因此， Eureka 可以很好的应对因网络故障导致部分节点失去联系的情况，而不会像 zookeeper 那样使整个注册服务瘫痪。**
+
+## 三、Ribbon 负载均衡
+
+### 1、概述
+
+#### 是什么
+
+读音：[ribbon](https://fanyi.baidu.com/#en/zh/ribbon) 美 [ˈrɪbən] 
+
+Spring Cloud Ribbon 是基于 Netflix Ribbon 实现的一套 **客户端负载均衡** 的工具。
+
+简单的说，Ribbon 是 Netflix 发布的开源项目，主要功能是提供客户端的软件负载均衡算法，将 Netflix 的中间层服务连接在一起。Ribbon 客户端组件提供一系列完善的配置项如连接超时，重试等。简单的说，就是在配置文件中列出 Load Balancer（简称LB）后面所有的机器，Ribbon 会自动的帮助你基于某种规则（如简单轮询，随机连接等）去连接这些机器。我们也很容易使用 Ribbon 实现自定义的负载均衡算法。
+
+#### 作用 LB（负载均衡）
+
+LB，即负载均衡（Load Balance），在微服务或分布式集群中经常用的一种应用。
+
+负载均衡简单的说就是将用户的请求平摊的分配到多个服务上，从而达到系统的 HA（High Available）。常见的负载均衡有软件Nginx，LVS，硬件 F5等。相应的在中间件，例如：dubbo 和 SpringCloud 中均给我们提供了负载均衡，SpringCloud 的负载均衡算法可以自定义。 
+
+##### 集中式 LB
+
+即在服务的消费方和提供方之间使用独立的 LB 设施（可以是硬件，如 F5, 也可以是软件，如 nginx）, 由该设施负责把访问请求通过某种策略转发至服务的提供方。
+
+##### 进程内 LB
+
+将 LB 逻辑集成到消费方，消费方从服务注册中心获知有哪些地址可用，然后自己再从这些地址中选择出一个合适的服务器。
+
+Ribbon 就属于进程内 LB，它只是一个类库，集成于消费方进程，消费方通过它来获取到服务提供方的地址。
+
+#### 官网
+
+https://github.com/Netflix/ribbon/wiki/Getting-Started
+
+### 2、初步配置
+
+#### A、修改 spring-cloud-consumer-dept-80
+
+##### 修改 pom.xml
+
+增加 Ribbon 相关依赖
+
+```xml
+<!-- Ribbon相关 -->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-eureka</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-ribbon</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-config</artifactId>
+</dependency>
+```
+
+##### 修改 application.yaml
+
+追加 eureka 的服务注册地址
+
+```yaml
+eureka:
+  client:
+    register-with-eureka: false
+    service-url: 
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+```
+
+##### 修改 ConfigBean
+
+在 ConfigBean 上加上新注解 @LoadBalanced，使其获得 Rest 时加入 Ribbon 的配置
+
+```java
+@Configuration
+public class ConfigBean {
+    @Bean
+    @LoadBalanced
+    public RestTemplate getRestTemplate() {
+        return new RestTemplate();
+    }
+}
+```
+
+##### 修改 DeptConsumerApp80
+
+主启动类 DeptConsumerApp80 添加 @EnableEurekaClient
+
+```java
+@SpringBootApplication
+@EnableEurekaClient
+public class DeptConsumerApp80 {
+    public static void main(String[] args) {
+        SpringApplication.run(DeptConsumerApp80.class, args);
+    }
+}
+```
+
+##### 修改 DeptControllerConsumer
+
+修改 REST_URL_PREFIX
+
+```java
+/**
+ * private static final String REST_URL_PREFIX = "http://localhost:8001";
+ *
+ * SPRING-CLOUD-PROVIDER-DEPT 就是 spring.application.name 的大写，
+ * 也就是 Eureka Server 浏览器面板中 Application 下对应的名字
+ */
+ private static final String REST_URL_PREFIX = "http://SPRING-CLOUD-PROVIDER-DEPT";
+```
+
+
+
+
 

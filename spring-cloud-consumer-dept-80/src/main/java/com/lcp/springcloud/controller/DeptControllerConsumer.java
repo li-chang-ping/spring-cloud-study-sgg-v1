@@ -14,7 +14,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/consumer")
 public class DeptControllerConsumer {
-    private static final String REST_URL_PREFIX = "http://localhost:8001";
+
+    /**
+     * private static final String REST_URL_PREFIX = "http://localhost:8001";
+     *
+     * SPRING-CLOUD-PROVIDER-DEPT 就是 spring.application.name 的大写，
+     * 也就是 Eureka Server 浏览器面板中 Application 下对应的名字
+     */
+    private static final String REST_URL_PREFIX = "http://SPRING-CLOUD-PROVIDER-DEPT";
 
     @Resource
     private RestTemplate restTemplate;
