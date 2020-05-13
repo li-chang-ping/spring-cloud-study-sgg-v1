@@ -593,7 +593,7 @@ import javax.annotation.Resource;
 import java.util.List;
 
 @RestController
-@RequestMapping("/consumer")
+@RequestMapping("/consumer/dept")
 public class DeptControllerConsumer {
     private static final String REST_URL_PREFIX = "http://localhost:8001";
 
@@ -642,15 +642,15 @@ public class DeptConsumerApp80 {
 
 启动服务进行测试，上一个服务也要启动
 
-1. 访问：http://localhost:8001/dept/get/2
+1. 访问：http://localhost/consumer/dept/get/2
 
    结果 一.1.11
 
-2. 访问：http://localhost:8001/dept/list
+2. 访问：http://localhost/consumer/dept/list
 
    结果同 一.1.11
 
-3. 访问：http://localhost/consumer/add
+3. 访问：http://localhost/consumer/dept/add
 
    ```
    true
@@ -659,15 +659,15 @@ public class DeptConsumerApp80 {
 IDEA rest-api.http
 
 ```http
-GET http://localhost/consumer/list
+GET http://localhost/consumer/dept/list
 Accept: application/json
 
 ###
-GET http://localhost/consumer/get/2
+GET http://localhost/consumer/dept/get/2
 Accept: application/json
 
 ###
-POST http://localhost/consumer/add
+POST http://localhost/consumer/dept/add
 Content-Type: application/json
 
 {
@@ -690,7 +690,7 @@ Netflix 在设计 Eureka 是遵守 AP 原则
 
 ### 2、原理
 
-#### Eureka 基本架构
+#### 1、Eureka 基本架构
 
 Spring Cloud 封装了 Netflix 公司开发的 Eureka 模块来实现服务注册和发现（请对比 Zookeeper）。
 
@@ -707,13 +707,13 @@ Eureka Server 提供服务注册服务，各个节点启动后，会在EurekaSer
 
 EurekaClient 是一个 Java 客户端，用于简化 Eureka Server 的交互，客户端同时也具备一个内置的、使用轮询(round-robin) 负载算法的负载均衡器。在应用启动后，将会向 Eureka Server 发送心跳（默认周期为30秒）。如果Eureka Server 在多个心跳周期内没有接收到某个节点的心跳，Eureka Server 将会从服务注册表中把这个服务节点移除（默认90秒）。
 
-#### 三大角色
+#### 2、三大角色
 
 1. Eureka Server ：提供服务注册与发现
 2. Service Provider ：服务提供方，将自身服务注册到 Eureka Server，从而使服务消费方能够找到
 3. Service Consumer ：服务消费方，从 Eureka Server 获取注册服务列表，从而能够消费服务
 
-#### Eureka 自我保护机制
+#### 3、Eureka 自我保护机制
 
 现象
 
@@ -735,7 +735,7 @@ EurekaClient 是一个 Java 客户端，用于简化 Eureka Server 的交互，�
 
 #### 1、构建服务注册中心模块 spring-cloud-eureka-7001
 
-##### 新建 Maven 工程 spring-cloud-eureka-7001
+##### 1、新建 Maven 工程 spring-cloud-eureka-7001
 
 `pom.xml`
 
@@ -773,7 +773,7 @@ EurekaClient 是一个 Java 客户端，用于简化 Eureka Server 的交互，�
 </project>
 ```
 
-##### application.yaml
+##### 2、application.yaml
 
 ```yaml
 server:
@@ -793,7 +793,7 @@ eureka:
       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
 ```
 
-##### EurekaServerApp7001 主启动类
+##### 3、EurekaServerApp7001 主启动类
 
 ```java
 package com.lcp.springcloud;
@@ -813,7 +813,7 @@ public class EurekaServerApp7001 {
 }
 ```
 
-##### 测试
+##### 4、测试
 
 访问地址：http://localhost:7001，结果如下
 
@@ -823,7 +823,7 @@ public class EurekaServerApp7001 {
 
 修改 spring-cloud-provider-dept-8001 ，将其注册到 Eureka Server
 
-##### 修改 pom.xml
+##### 1、修改 pom.xml
 
 增加以下内容
 
@@ -839,7 +839,7 @@ public class EurekaServerApp7001 {
 </dependency>
 ```
 
-##### 修改 application.yaml
+##### 2、修改 application.yaml
 
 增加以下内容
 
@@ -851,7 +851,7 @@ eureka:
       defaultZone: http://localhost:7001/eureka
 ```
 
-##### 修改 DeptProviderApp8001
+##### 3、修改 DeptProviderApp8001
 
 在启动类上添加 `@EnableEurekaClient` 表示这是一个 Eureka 客户端，服务启动后会自动注册到 Eureka Server
 
@@ -874,7 +874,7 @@ public class DeptProviderApp8001 {
 }
 ```
 
-##### 测试
+##### 4、测试
 
 先启动 Eureka Server，再启动本模块，浏览器访问：http://localhost:7001，结果如下
 
@@ -892,7 +892,7 @@ Eureka Server 的页面目前存在的问题
 2. 超链接中没有 IP
 3. 单击超链接跳转到对应微服务的 info 页面时为 404 ErrorPage
 
-##### 主机名称:服务名称修改
+##### 1、主机名称:服务名称修改
 
 修改 application.yaml
 
@@ -911,7 +911,7 @@ eureka:
 
 ![image-20200512112557673](SpringCloud学习笔记_V1.assets/image-20200512112557673.png)
 
-##### 访问信息有IP提示
+##### 2、访问信息有IP提示
 
 修改 application.yaml
 
@@ -932,7 +932,7 @@ eureka:
 
 ![image-20200512112839841](SpringCloud学习笔记_V1.assets/image-20200512112839841.png)
 
-##### 微服务 info 内容详细信息
+##### 3、微服务 info 内容详细信息
 
 修改  spring-cloud-provider-dept-8001 的 pom.xml 添加以下依赖
 
@@ -987,7 +987,7 @@ info:
 
 下面对 spring-cloud-provider-dept-8001 进行修改
 
-##### 修改 DeptController 
+##### 1、修改 DeptController 
 
 增加以下内容
 
@@ -1014,7 +1014,7 @@ public class DeptController {
 }
 ```
 
-##### 修改 DeptProviderApp8001
+##### 2、修改 DeptProviderApp8001
 
 增加注解 `@EnableDiscoveryClient`
 
@@ -1032,7 +1032,7 @@ public class DeptProviderApp8001 {
 }
 ```
 
-##### 测试
+##### 3、测试
 
 先启动 EurekaServerApp7001，再启动 DeptProviderApp8001，访问：http://localhost:8001/dept/discovery，结果如下
 
@@ -1052,7 +1052,7 @@ public class DeptProviderApp8001 {
 }
 ```
 
-##### 测试消费端调用服务发现
+##### 4、测试消费端调用服务发现
 
 修改 spring-cloud-consumer-dept-80 的 DeptControllerConsumer
 
@@ -1065,7 +1065,7 @@ public Object discovery() {
 }
 ```
 
-访问：http://localhost/consumer/dept/discovery，结果如下
+访问：http://localhost/consumer/dept/dept/discovery，结果如下
 
 ```json
 {
@@ -1085,7 +1085,7 @@ public Object discovery() {
 
 ### 4、Eureka 集群配置
 
-#### 原理
+#### 1、原理
 
 ![image-20200512170656666](SpringCloud学习笔记_V1.assets/image-20200512170656666.png)
 
@@ -1104,13 +1104,13 @@ public Object discovery() {
 
 服务提供者在启动后，周期性（默认30秒）向Eureka Server发送心跳，以证明当前服务是可用状态。Eureka Server在一定的时间（默认90秒）未收到客户端的心跳，则认为服务宕机，注销该实例。
 
-#### 构建集群
+#### 2、构建集群
 
-##### 新建两个 Eureka Server
+##### 1、新建两个 Eureka Server
 
 以 spring-cloud-eureka-7001 为模板，新建 spring-cloud-eureka-7002 spring-cloud-eureka-7003
 
-##### 修改映射配置
+##### 2、修改映射配置
 
 编辑 hosts 文件
 
@@ -1120,7 +1120,7 @@ public Object discovery() {
 127.0.0.1 eureka7003.com
 ```
 
-##### 修改三个 Eureka 的 yaml配置
+##### 3、修改三个 Eureka 的 yaml配置
 
 7001 application.yaml
 
@@ -1196,7 +1196,7 @@ spring:
     name: spring-cloud-eureka-7003
 ```
 
-##### 将 spring-cloud-provider-dept-8001 发布到三台 Eureka Server 中
+##### 4、将 spring-cloud-provider-dept-8001 发布到三台 Eureka Server 中
 
 修改 spring-cloud-provider-dept-8001 的 yaml 配置
 
@@ -1209,7 +1209,7 @@ eureka:
       defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
 ```
 
-##### 测试
+##### 5、测试
 
 访问：http://eureka7003.com:7003/，http://eureka7002.com:7002/，http://eureka7002.com:7002/
 
@@ -1217,7 +1217,7 @@ eureka:
 
 ![image-20200512203249748](SpringCloud学习笔记_V1.assets/image-20200512203249748.png)
 
-##### 关于 `unavailable-replicas`【重要】
+##### 6、关于 `unavailable-replicas`【重要】\*\*\*\*\*\*
 
 在上一步成功的前提下，观察 General Info 我们可以发现，另外的两个节点虽然注册成功了，但却都是 unavailable-replicas，available-replicas 为空，这说明集群虽然搭建成功，但并不是高可用。
 
@@ -1318,7 +1318,7 @@ Eureka 看明白了这一点，因此在设计时就优先保证可用性。Eure
 
 ### 1、概述
 
-#### 是什么
+#### 1、是什么
 
 读音：[ribbon](https://fanyi.baidu.com/#en/zh/ribbon) 美 [ˈrɪbən] 
 
@@ -1326,7 +1326,7 @@ Spring Cloud Ribbon 是基于 Netflix Ribbon 实现的一套 **客户端负载�
 
 简单的说，Ribbon 是 Netflix 发布的开源项目，主要功能是提供客户端的软件负载均衡算法，将 Netflix 的中间层服务连接在一起。Ribbon 客户端组件提供一系列完善的配置项如连接超时，重试等。简单的说，就是在配置文件中列出 Load Balancer（简称LB）后面所有的机器，Ribbon 会自动的帮助你基于某种规则（如简单轮询，随机连接等）去连接这些机器。我们也很容易使用 Ribbon 实现自定义的负载均衡算法。
 
-#### 作用 LB（负载均衡）
+#### 2、作用 LB（负载均衡）
 
 LB，即负载均衡（Load Balance），在微服务或分布式集群中经常用的一种应用。
 
@@ -1342,7 +1342,7 @@ LB，即负载均衡（Load Balance），在微服务或分布式集群中经常
 
 Ribbon 就属于进程内 LB，它只是一个类库，集成于消费方进程，消费方通过它来获取到服务提供方的地址。
 
-#### 官网
+#### 3、官网
 
 https://github.com/Netflix/ribbon/wiki/Getting-Started
 
@@ -1350,7 +1350,7 @@ https://github.com/Netflix/ribbon/wiki/Getting-Started
 
 修改 spring-cloud-consumer-dept-80
 
-#### 修改 pom.xml
+#### 1、修改 pom.xml
 
 增加 Ribbon 相关依赖
 
@@ -1370,7 +1370,7 @@ https://github.com/Netflix/ribbon/wiki/Getting-Started
 </dependency>
 ```
 
-#### 修改 application.yaml
+#### 2、修改 application.yaml
 
 追加 eureka 的服务注册地址
 
@@ -1382,7 +1382,7 @@ eureka:
       defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
 ```
 
-#### 修改 ConfigBean
+#### 3、修改 ConfigBean
 
 在 ConfigBean 上加上新注解 @LoadBalanced，使其获得 Rest 时加入 Ribbon 的配置
 
@@ -1397,7 +1397,7 @@ public class ConfigBean {
 }
 ```
 
-#### 修改 DeptConsumerApp80
+#### 4、修改 DeptConsumerApp80
 
 主启动类 DeptConsumerApp80 添加 @EnableEurekaClient
 
@@ -1411,7 +1411,7 @@ public class DeptConsumerApp80 {
 }
 ```
 
-#### 修改 DeptControllerConsumer
+#### 5、修改 DeptControllerConsumer
 
 修改 REST_URL_PREFIX
 
@@ -1425,9 +1425,9 @@ public class DeptConsumerApp80 {
  private static final String REST_URL_PREFIX = "http://SPRING-CLOUD-PROVIDER-DEPT";
 ```
 
-#### 测试
+#### 6、测试
 
-1. 访问：http://localhost/consumer/list，结果如下
+1. 访问：http://localhost/consumer/dept/list，结果如下
 
    ```json
    [{"deptno":1,"dname":"开发部","db_source":"cloudDB01"},
@@ -1435,16 +1435,16 @@ public class DeptConsumerApp80 {
     {"deptno":10,"dname":"Test2","db_source":"cloudDB01"}]
    ```
 
-2. 访问：http://localhost/consumer/get/1，结果如下
+2. 访问：http://localhost/consumer/dept/get/1，结果如下
 
    ```json
    {"deptno":1,"dname":"开发部","db_source":"cloudDB01"}
    ```
 
-3. 访问：http://localhost/consumer/add，rest-api.http 如下
+3. 访问：http://localhost/consumer/dept/add，rest-api.http 如下
 
    ```http
-   POST http://localhost/consumer/add
+   POST http://localhost/consumer/dept/add
    Content-Type: application/json
    
    {
@@ -1459,13 +1459,13 @@ public class DeptConsumerApp80 {
    true
    ```
 
-#### 小结
+#### 7、小结
 
 Ribbon 和 Eureka 整合后 Consumer 可以直接根据服务名调用服务，而不用关心具体的 IP 和端口号
 
 ### 3、Ribbon 负载均衡
 
-#### 架构说明
+#### 1、架构说明
 
 ![图像](SpringCloud学习笔记_V1.assets/图像-1589370910024.png)
 
@@ -1477,11 +1477,11 @@ Ribbon 在工作时分成两步
 
 其中 Ribbon 提供了多种策略：比如轮询、随机和根据响应时间加权。
 
-#### 新建 spring-cloud-provider-dept-8002/8003
+#### 2、新建 spring-cloud-provider-dept-8002/8003
 
 参考 spring-cloud-provider-dept-8001，新建模块 spring-cloud-provider-dept-8002，spring-cloud-provider-dept-8003
 
-#### 新建 cloudDB02，cloudDB03
+#### 3、新建 cloudDB02，cloudDB03
 
 新建 spring-cloud-provider-dept-8002/8003 各自的数据库 cloudDB02/cloudDB03，sql 脚本如下
 
@@ -1531,7 +1531,7 @@ INSERT INTO dept(dname,db_source) VALUES('运维部',DATABASE());
 SELECT * FROM dept;
 ```
 
-#### 修改 application.yaml
+#### 4、修改 application.yaml
 
 修改 spring-cloud-provider-dept-8002，spring-cloud-provider-dept-8002，spring-cloud-provider-dept-8003 的 yaml
 
@@ -1548,7 +1548,7 @@ spring-cloud-provider-dept-8002 端口 8002，数据库 cloudDB02。
 
 spring-cloud-provider-dept-8003 端口 8003，数据库 cloudDB03。
 
-#### Dept 微服务集群自测
+#### 5、Dept 微服务集群自测
 
 1. 访问：http://localhost:8001/dept/list，结果如下
 
@@ -1562,15 +1562,46 @@ spring-cloud-provider-dept-8003 端口 8003，数据库 cloudDB03。
 
 3. 访问：http://localhost:8003/dept/list，结果同上
 
-#### 测试客户端通过 Ribbon 负载均衡访问 Dept 集群
+#### 6、测试客户端通过 Ribbon 负载均衡访问 Dept 集群
 
+访问：http://localhost/consumer/dept/list，注意观察返回结果中数据库的名字，每次基本都不相同，说明负载均衡生效。
 
+#### 7、总结
 
+Ribbon 其实就是一个软负载均衡的客户端组件，他可以和其它所需清求的客户端结合使用，和 Eureka 结合只是具中的一个实例。
 
+### 4、Ribbon 核心组件 IRule
 
+IRule 根据特定算法从服务列表选取一个要访问的服务
 
+#### 1、RoundRobinRule
 
+轮询
 
+#### 2、RandomRule
 
+随机
 
+#### 3、AvailabilityFilteringRule
 
+先过滤掉由于多次访问故障而处于熔断器熔断状态的服务以及并发的连接数量超过阈值的服务，然后对剩余的服务列表按照轮询策略进行访问
+
+#### 4、WeightedResponseTimeRule
+
+根据平均响应时间计算所有服务的权重，响应时间越短的服务权重越大，被选中的概率越高。
+
+刚启动时如果统计信息不足，则使用 RoundRobinRule 策略，等到统计信息足够，会切换到 WeightedResponseTimeRule。
+
+#### 5、RetryRule
+
+先按照 RoundRobinRule 的策略获取服务，如果获取服务失败则会在指定的时间内重试，以获取可用的服务。
+
+#### 6、BestAvailabeRule
+
+会先过滤掉由于多次访问故障而处于熔断器熔断状态的服务，然后选择一个并发量最小的服务
+
+#### 7、ZoneAvoidanceRule
+
+默认规则，复合判断 Server 所在区域的性能和 Server 的可用性来选择服务器。
+
+### 5、Ribbon 自定义

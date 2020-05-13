@@ -12,7 +12,7 @@ import java.util.List;
  * @date 2020/5/11 21:25
  */
 @RestController
-@RequestMapping("/consumer")
+@RequestMapping("/consumer/dept")
 public class DeptControllerConsumer {
 
     /**
