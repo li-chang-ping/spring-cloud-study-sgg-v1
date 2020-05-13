@@ -22,7 +22,7 @@ public class ConfigBean {
 
     @Bean
     public IRule myRuble() {
-        // 用执行的随机选择算法替代默认算法
+        // 用选择的随机选择算法替代默认算法
         return new RandomRule();
     }
 }

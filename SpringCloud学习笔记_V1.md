@@ -1615,4 +1615,27 @@ IRule 根据特定算法从服务列表选取一个要访问的服务
 
 默认规则，复合判断 Server 所在区域的性能和 Server 的可用性来选择服务器。
 
+#### 切换 Ribbon 内置的负载均衡算法
+
+修改 spring-cloud-consumer-dept-80 的 `ConfigBean`
+
+```java
+@Configuration
+public class ConfigBean {
+
+    @Bean
+    @LoadBalanced
+    public RestTemplate getRestTemplate() {
+        return new RestTemplate();
+    }
+
+    @Bean
+    public IRule myRuble() {
+        // 用选择的随机选择算法替代默认算法
+        return new RandomRule();
+    }
+}
+```
+
 ### 5、Ribbon 自定义
+
