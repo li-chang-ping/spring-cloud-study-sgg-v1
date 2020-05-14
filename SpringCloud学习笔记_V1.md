@@ -1217,7 +1217,7 @@ eureka:
 
 ![image-20200512203249748](SpringCloud学习笔记_V1.assets/image-20200512203249748.png)
 
-##### 6、关于 `unavailable-replicas`【重要】\*\*\*\*\*\*
+##### 关于 `unavailable-replicas`【重要】\*\*\*\*\*\*
 
 在上一步成功的前提下，观察 General Info 我们可以发现，另外的两个节点虽然注册成功了，但却都是 unavailable-replicas，available-replicas 为空，这说明集群虽然搭建成功，但并不是高可用。
 
@@ -1630,7 +1630,7 @@ public class ConfigBean {
     }
 
     @Bean
-    public IRule myRuble() {
+    public IRule myRule() {
         // 用选择的随机选择算法替代默认算法
         return new RandomRule();
     }
@@ -1639,3 +1639,160 @@ public class ConfigBean {
 
 ### 5、Ribbon 自定义
 
+修改 spring-cloud-consumer-dept-80
+
+#### 1、主启动类添加 @RibbonClient
+
+
+在启动该微服务的时候就能去加载我们的自定义Ribbon配置类，从而使配置生效，形如：
+
+`@RibbonClient(name="MICROSERVICECLOUD-DEPT",configuration=MySelfRule.class)`
+
+#### 2、注意配置细节 
+
+官方文档明确给出了警告：
+
+这个自定义配置类不能放在@ComponentScan所扫描的当前包下以及子包下，否则我们自定义的这个配置类就会被所有的 Ribbon 客户端所共享，也就是说我们达不到特殊化定制的目的了。
+
+![image-20200514091242958](SpringCloud学习笔记_V1.assets/image-20200514091242958.png)
+
+##### 新建 com.lcp.myrule.MySelfRule.java
+
+```java
+@Configuration
+public class MySelfRule {
+    @Bean
+    public IRule myRule()
+    {
+        //Ribbon默认是轮询，这里自定义为随机
+        return new RandomRule();
+    }
+}
+```
+
+##### 修改主启动类
+
+```java
+import com.lcp.myrule.MySelfRule;
+
+@SpringBootApplication
+@EnableEurekaClient
+@RibbonClient(name = "SPRING-CLOUD-PROVIDER-DEPT",configuration = MySelfRule.class)
+public class DeptConsumerApp80 {
+    public static void main(String[] args) {
+        SpringApplication.run(DeptConsumerApp80.class, args);
+    }
+}
+```
+
+##### 测试
+
+访问：http://localhost/consumer/dept/list
+
+### 3、深度自定义规则
+
+问题：依旧轮询策略，但是加上新需求，每个服务要求被调用5次，也就是以前每个服务被调用1次，现在每个服务被调用5次。
+
+#### 查看源码
+
+https://github.com/Netflix/ribbon/blob/master/ribbon-loadbalancer/src/main/java/com/netflix/loadbalancer/RandomRule.java
+
+#### 参考源码编写满足需求的 RoundRobinLcp.java
+
+```java
+package com.lcp.myrule;
+
+import com.netflix.client.config.IClientConfig;
+import com.netflix.loadbalancer.AbstractLoadBalancerRule;
+import com.netflix.loadbalancer.ILoadBalancer;
+import com.netflix.loadbalancer.Server;
+
+import java.util.List;
+
+/**
+ * 需求：依旧是轮询策略，但是要求每个服务被调用五次，而不是原来的一次
+ */
+public class RoundRobinLcp extends AbstractLoadBalancerRule {
+    // 总共被调用的次数，目前要求每台被调用5次    
+    private int total = 0;
+
+    // 当前提供服务的机器号
+    private int currentIndex = 0;
+
+    public Server choose(ILoadBalancer lb, Object key) {
+        if (lb == null) {
+            return null;
+        }
+        Server server = null;
+
+        while (server == null) {
+            if (Thread.interrupted()) {
+                return null;
+            }
+            List<Server> upList = lb.getReachableServers();
+            List<Server> allList = lb.getAllServers();
+
+            int serverCount = allList.size();
+            if (serverCount == 0) {
+                return null;
+            }
+
+            // int index = chooseRandomInt(serverCount);
+            // server = upList.get(index);
+
+            if (total < 5) {
+                server = upList.get(currentIndex);
+                total++;
+            } else {
+                total = 0;
+                currentIndex++;
+                if (currentIndex >= upList.size()) {
+                    currentIndex = 0;
+                }
+            }
+
+            if (server == null) {
+                Thread.yield();
+                continue;
+            }
+
+            if (server.isAlive()) {
+                return (server);
+            }
+            
+            server = null;
+            Thread.yield();
+        }
+
+        return server;
+    }
+
+    @Override
+    public Server choose(Object key) {return choose(getLoadBalancer(), key);}
+
+    @Override
+    public void initWithNiwsConfig(IClientConfig iClientConfig) {}
+}
+```
+
+#### 修改 MySelfRule
+
+```java
+@Configuration
+public class MySelfRule {
+    @Bean
+    public IRule myRule()
+    {
+        //Ribbon默认是轮询，这里自定义为自定义轮询
+        return new RoundRobinLcp();
+    }
+}
+```
+
+#### 启动并测试
+
+访问：http://localhost/consumer/dept/list
+
+
+
+ 
