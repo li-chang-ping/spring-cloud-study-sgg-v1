@@ -1,4 +1,4 @@
-# SpringCloud学习笔记_V1
+# ![image-20200514222025301](SpringCloud学习笔记_V1.assets/image-20200514222025301.png)SpringCloud学习笔记_V1
 
 ## 一、工程环境搭建
 
@@ -1980,7 +1980,10 @@ Hystrix是一个用于处理分布式系统的延迟和容错的开源库，在�
 
    ........
 
-参考：https://www.cnblogs.com/cjsblog/p/9391819.html
+参考：
+
+1. https://www.cnblogs.com/cjsblog/p/9391819.html
+2. https://my.oschina.net/7001/blog/1619842
 
 #### 4、官网资料
 
@@ -2079,7 +2082,7 @@ public Dept processHystrixGet(@PathVariable("id") Long id) {
 #### 5、测试
 
 1. 启动 Eureka 集群，provider-dept 集群，spring-cloud-consumer-dept-80
-2. 访问：http://localhost/consumer/dept/get/111
+2. 访问：http://localhost/consumer/dept/get/1
 
 ![image-20200514213153927](SpringCloud学习笔记_V1.assets/image-20200514213153927.png)
 
@@ -2092,4 +2095,79 @@ PS：这是浏览器插件自动美化 json 后的效果
 整体资源快不够了，忍痛将某些服务先关掉，待渡过难关，再开启回来。
 
 服务降级降级处理是在客户端实现完成的，和服务端没有关系。
+
+#### 2、修改 spring-cloud-api
+
+1. 为已有的 DeptClientService 接口新建一个 DeptClientServiceFallbackFactory 实现 FallbackFactory 接口，使其支持服务降级。
+
+   DeptClientServiceFallbackFactory.java
+
+   ```java
+   /**
+    * {@code @Component} 千万不要忘记添加此注解
+    */
+   @Component
+   public class DeptClientServiceFallbackFactory implements FallbackFactory<DeptClientService> {
+       @Override
+       public DeptClientService create(Throwable throwable) {
+           return new DeptClientService() {
+               @Override
+               public Dept get(long id) {
+                   return new Dept().setDeptno(id)
+                           .setDname("该ID：" + id + "没有没有对应的信息,Consumer客户端提供的降级信息,此刻服务Provider已经关闭")
+                           .setDb_source("no this database in MySQL");
+               }
+   
+               @Override
+               public List<Dept> list() {
+                   return null;
+               }
+   
+               @Override
+               public boolean add(Dept dept) {
+                   return false;
+               }
+           };
+       }
+   }
+   ```
+
+2. 在 DeptClientService 接口中的 @FeignClient 注解中添加 fallbackFactory 属性值
+
+   ```java
+   @FeignClient(value = "SPRING-CLOUD-PROVIDER-DEPT",
+           fallbackFactory = DeptClientServiceFallbackFactory.class)
+   ```
+
+3. spring-cloud-api 模块，mvn clean，mvn install（IDEA不做这两步也行，如果开了自动编译）
+
+#### 3、修改 spring-cloud-consumer-dept-feign-81
+
+修改 application.yaml，添加以下配置
+
+```yaml
+feign:
+  hystrix:
+    enabled: true
+```
+
+#### 4、测试
+
+1. 启动 Eureka 集群，spring-cloud-provider-dept-8001，spring-cloud-consumer-dept-feign-81
+
+2. 正常访问测试：http://localhost:81/consumer/dept/get/1，返回正常数据
+
+   ![image-20200514222028134](SpringCloud学习笔记_V1.assets/image-20200514222028134.png)
+
+3. 故意关闭 spring-cloud-provider-dept-8001，再次访问：http://localhost:81/consumer/dept/get/1，返回如下数据
+
+   ![image-20200514222211625](SpringCloud学习笔记_V1.assets/image-20200514222211625.png)
+
+   此时服务端 provider-dept 已经 down 了，由于做了服务降级处理，客户端在服务端不可用的情况下也会返回提示信息，而不会挂起耗死服务器
+
+### 5、服务监控 HystrixDashboard
+
+除了隔离依赖服务的调用以外，Hystrix 还提供了准实时的调用监控（Hystrix Dashboard），Hystrix 会持续地记录所有通过 Hystrix 发起的请求的执行信息，并以统计报表和图形的形式展示给用户，包括每秒执行多少请求多少成功，多少失败等。Netflix 通过 hystrix-metrics-event-stream 项目实现了对以上指标的监控。Spring Cloud 也提供了 Hystrix Dashboard 的整合，对监控内容转化成可视化界面。
+
+
 

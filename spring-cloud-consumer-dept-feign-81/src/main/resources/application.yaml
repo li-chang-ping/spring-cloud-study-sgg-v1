@@ -16,3 +16,7 @@ eureka:
 spring:
   application:
     name: spring-cloud-consumer-dept
+
+feign:
+  hystrix:
+    enabled: true
