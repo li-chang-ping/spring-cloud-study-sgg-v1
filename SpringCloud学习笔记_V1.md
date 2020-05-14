@@ -244,7 +244,7 @@ server:
 
 mybatis:
   config-location: classpath:mybatis/mybatis.cfg.xml        # mybatis配置文件所在路径
-  type-aliases-package: com.atguigu.com.lcp.springcloud.entities    # 所有Entity别名类所在包
+  type-aliases-package: com.lcp.springcloud.entities    # 所有Entity别名类所在包
   mapper-locations:
     - classpath:mybatis/mapper/**/*.xml                       # mapper映射文件
 
@@ -1853,7 +1853,7 @@ Feign 集成了 Ribbon
   @FeignClient 注解用于指定从哪个服务中调用功能 ，注意里面的名称与被调用的服务名保持一致，并且不能包含下划线。
 
   ```java
-  @FeignClient(value = "MICROSERVICECLOUD-DEPT")
+  @FeignClient(value = "SPRING-CLOUD-PROVIDER-DEPT")
   public interface DeptClientService
   {
     @RequestMapping(value = "/dept/get/{id}",method = RequestMethod.GET)
@@ -1922,4 +1922,174 @@ Feign 集成了 Ribbon
 
 #### 5、总结
 
-Feign通过接口的方法调用Rest服务（之前是 Ribbon + RestTemplate ），该请求发送给Eureka服务器（http://MICROSERVICECLOUD-DEPT/dept/list），通过Feign直接找到服务接口，由于在进行服务调用的时候融合了Ribbon技术，所以也支持负载均衡作用。
+Feign通过接口的方法调用Rest服务（之前是 Ribbon + RestTemplate ），该请求发送给Eureka服务器（http://SPRING-CLOUD-PROVIDER-DEPT/dept/list），通过Feign直接找到服务接口，由于在进行服务调用的时候融合了Ribbon技术，所以也支持负载均衡作用。
+
+## 五、Hystrix
+
+### 1、概述
+
+#### 1、分布式系统面临的问题
+
+复杂分布式体系结构中的应用程序有数十个依赖关系，每个依赖关系在某些时候将不可避免地失败。
+
+![image-20200514193147962](SpringCloud学习笔记_V1.assets/image-20200514193147962.png)
+
+服务雪崩
+多个微服务之间调用的时候，假设微服务A调用微服务B和微服务C，微服务B和微服务C又调用其它的微服务，这就是所谓的“扇出”。如果扇出的链路上某个微服务的调用响应时间过长或者不可用，对微服务A的调用就会占用越来越多的系统资源，进而引起系统崩溃，所谓的“雪崩效应”.
+
+对于高流量的应用来说，单一的后端依赖可能会导致所有服务器上的所有资源都在几秒钟内饱和。比失败更糟糕的是，这些应用程序还可能导致服务之间的延迟增加，备份队列，线程和其他系统资源紧张，导致整个系统发生更多的级联故障。这些都表示需要对故障和延迟进行隔离和管理，以便单个依赖关系的失败，不能取消整个应用程序或系统。
+
+**一般情况对于服务依赖的保护主要有3种解决方案：**
+
+1. 熔断模式：这种模式主要是参考电路熔断，如果一条线路电压过高，保险丝会熔断，防止火灾。放到我们的系统中，如果某个目标服务调用慢或者有大量超时，此时，熔断该服务的调用，对于后续调用请求，不在继续调用目标服务，直接返回，快速释放资源。如果目标服务情况好转则恢复调用。
+
+2. 隔离模式：这种模式就像对系统请求按类型划分成一个个小岛的一样，当某个小岛被火少光了，不会影响到其他的小岛。例如可以对不同类型的请求使用线程池来资源隔离，每种类型的请求互不影响，如果一种类型的请求线程资源耗尽，则对后续的该类型请求直接返回，不再调用后续资源。这种模式使用场景非常多，例如将一个服务拆开，对于重要的服务使用单独服务器来部署，再或者公司最近推广的多中心。
+
+3. 限流模式：上述的熔断模式和隔离模式都属于出错后的容错处理机制，而限流模式则可以称为预防模式。限流模式主要是提前对各个类型的请求设置最高的QPS阈值，若高于设置的阈值则对该请求直接返回，不再调用后续资源。这种模式不能解决服务依赖的问题，只能解决系统整体资源分配问题，因为没有被限流的请求依然有可能造成雪崩效应。
+
+#### 2、是什么
+
+读音：[hystrix](https://fanyi.baidu.com/#en/zh/hystrix)
+
+Hystrix是一个用于处理分布式系统的延迟和容错的开源库，在分布式系统里，许多依赖不可避免的会调用失败，比如超时、异常等，Hystrix能够保证在一个依赖出问题的情况下，不会导致整体服务失败，避免级联故障，以提高分布式系统的弹性。
+
+“断路器”本身是一种开关装置，当某个服务单元发生故障之后，通过断路器的故障监控（类似熔断保险丝），向调用方返回一个符合预期的、可处理的备选响应（FallBack），而不是长时间的等待或者抛出调用方无法处理的异常，这样就保证了服务调用方的线程不会被长时间、不必要地占用，从而避免了故障在分布式系统中的蔓延，乃至雪崩。
+
+#### 3、能干什么
+
+1. 服务降级
+
+   服务降级，其实就是线程池中单个线程障处理，防止单个线程请求时间太长，导致资源长期被占有而得不到释放，从而导致线程池被快速占用完，导致服务崩溃。
+
+   Hystrix 能解决如下问题：
+
+   1. 请求超时降级，线程资源不足降级，降级之后可以返回自定义数据
+   2. 线程池隔离降级，分布式服务可以针对不同的服务使用不同的线程池，从而互不影响
+   3. 自动触发降级与恢复
+   4. 实现请求缓存和请求合并
+
+2. 服务熔断
+
+   熔断模式，这种模式主要是参考电路熔断，如果一条线路电压过高，保险丝会熔断，防止火灾。放到我们的系统中，如果某个目标服务调用慢或者有大量超时，此时，熔断该服务的调用，对于后续调用请求，不在继续调用目标服务，直接返回，快速释放资源。如果目标服务情况好转则恢复调用。
+
+3. 服务限流
+
+   限流模式主要是提前对各个类型的请求设置最高的 QPS 阈值，若高于设置的阈值则对该请求直接返回，不再调用后续资源。这种模式不能解决服务依赖的问题，只能解决系统整体资源分配问题，因为没有被限流的请求依然有可能造成雪崩效应。
+
+4. 接近实时的监控
+
+   ........
+
+参考：https://www.cnblogs.com/cjsblog/p/9391819.html
+
+#### 4、官网资料
+
+https://github.com/Netflix/Hystrix/wiki/How-To-Use
+
+### 2、服务熔断
+
+#### 1、概述
+
+熔断机制是应对雪崩效应的一种微服务链路保护机制。当扇出链路的某个微服务不可用或者响应时间太长时，会进行服务的降级，进而熔断该节点微服务的调用，快速返回"错误"的响应信息。当检测到该节点微服务调用响应正常后恢复调用链路。在 SpringCloud 框架里熔断机制通过 Hystrix 实现。Hystrix 会监控微服务间调用的状况，当失败的调用到一定阈值，缺省是5秒内20次调用失败就会启动熔断机制。熔断机制的注解是`@HystrixCommand`。
+
+#### 2、新建 spring-cloud-provider-dept-hystrix-8004
+
+参考 spring-cloud-provider-dept-8001 新建 spring-cloud-provider-dept-hystrix-8004
+
+1. 修改 pom.xml 加入 hystrix 依赖
+
+   ```xml
+<!--  hystrix -->
+   <dependency>
+       <groupId>org.springframework.cloud</groupId>
+       <artifactId>spring-cloud-starter-hystrix</artifactId>
+   </dependency>
+   ```
+   
+2. 修改 application.yaml
+
+   ```yaml
+   server:
+     port: 8004
+     
+   eureka:
+     instance:
+   	instance-id: provider-dept-hystrix-8004
+   
+   spring:
+     datasource:
+       url: jdbc:mysql://localhost:3306/cloudDB03              # 数据库名称
+   ```
+
+3. 创建 cloudDB04
+
+   ```sql
+   DROP DATABASE IF EXISTS cloudDB04;
+   CREATE DATABASE cloudDB04 CHARACTER SET UTF8;
+   USE cloudDB04;
+    
+   CREATE TABLE dept
+   (
+     deptno BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+     dname VARCHAR(60),
+     db_source   VARCHAR(60)
+   );
+    
+   INSERT INTO dept(dname,db_source) VALUES('开发部',DATABASE());
+   INSERT INTO dept(dname,db_source) VALUES('人事部',DATABASE());
+   INSERT INTO dept(dname,db_source) VALUES('财务部',DATABASE());
+   INSERT INTO dept(dname,db_source) VALUES('市场部',DATABASE());
+   INSERT INTO dept(dname,db_source) VALUES('运维部',DATABASE());
+    
+   SELECT * FROM dept;
+   ```
+
+4. 重命名 DeptProviderApp8003 为 DeptProviderHystrixApp8004
+
+#### 3、修改 DeptController
+
+修改方法 public Dept get(){}，增加方法 processHystrixGet()
+
+```java
+@HystrixCommand(fallbackMethod = "processHystrixGet")
+@RequestMapping(value = "/get/{id}", method = RequestMethod.GET)
+public Dept get(@PathVariable("id") Long id) {
+    return service.get(id);
+}
+
+public Dept processHystrixGet(@PathVariable("id") Long id) {
+    return new Dept().setDeptno(id)
+        .setDname("该ID：" + id + "没有没有对应的信息,null--@HystrixCommand")
+        .setDb_source("no this database in MySQL");
+}
+```
+
+#### @HystrixCommand
+
+该注解用来标注报异常后如何处理
+
+一旦调用服务方法失败并抛出错误信息后，会自动调用 @HystrixCommand 中 fallbackMethod 所指定的方法
+
+![image-20200514213015782](SpringCloud学习笔记_V1.assets/image-20200514213015782.png)
+
+#### 4、修改 DeptProviderHystrixApp8004
+
+增加注解 @EnableCircuitBreaker  开启对 hystrix 熔断机制的支持
+
+#### 5、测试
+
+1. 启动 Eureka 集群，provider-dept 集群，spring-cloud-consumer-dept-80
+2. 访问：http://localhost/consumer/dept/get/111
+
+![image-20200514213153927](SpringCloud学习笔记_V1.assets/image-20200514213153927.png)
+
+PS：这是浏览器插件自动美化 json 后的效果
+
+### 3、服务降级
+
+#### 1、是什么
+
+整体资源快不够了，忍痛将某些服务先关掉，待渡过难关，再开启回来。
+
+服务降级降级处理是在客户端实现完成的，和服务端没有关系。
+
