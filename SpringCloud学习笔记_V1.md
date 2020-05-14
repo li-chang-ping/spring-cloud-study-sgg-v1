@@ -1793,6 +1793,133 @@ public class MySelfRule {
 
 访问：http://localhost/consumer/dept/list
 
+## 四、Feign 负载均衡
 
+### 1、概述
 
- 
+读音：[feign](https://fanyi.baidu.com/#en/zh/feign) 美 [feɪn]
+
+官网：https://projects.spring.io/spring-cloud/spring-cloud.html#spring-cloud-feign
+
+Feign 是一个声明式 Web Service 客户端。使用 Feign能让编写 Web Service 客户端更加简单, 它的使用方法是定义一个接口，然后在上面添加注解，同时也支持 JAX-RS 标准的注解。Feign 也支持可拔插式的编码器和解码器。Spring Cloud 对 Feign 进行了封装，使其支持了 Spring MVC 标准注解和 HttpMessageConverters。Feign 可以与 Eureka 和 Ribbon 组合使用以支持负载均衡。
+
+![image-20200514142410568](SpringCloud学习笔记_V1.assets/image-20200514142410568.png)
+
+Feign是一个声明式的 Web Service 客户端，使得编写Web服务客户端变得非常容易，只需要创建一个接口，然后在上面添加注解即可。参考官网：https://github.com/OpenFeign/feign 
+
+Feign 能干什么
+Feign 旨在使编写 Java Http 客户端变得更容易。
+前面在使用Ribbon + RestTemplate 时，利用 RestTemplate 对 http 请求的封装处理，形成了一套模版化的调用方法。但是在实际开发中，由于对服务依赖的调用可能不止一处，往往一个接口会被多处调用，所以通常都会针对每个微服务自行封装一些客户端类来包装这些依赖服务的调用。所以，Feign 在此基础上做了进一步封装，由他来帮助我们定义和实现依赖服务接口的定义。在 Feign 的实现下，我们只需创建一个接口并使用注解的方式来配置它(以前是 Dao 接口上面标注 Mapper 注解,现在是一个微服务接口上面标注一个 Feign 注解即可)，即可完成对服务提供方的接口绑定，简化了使用 Spring cloud Ribbon 时，自动封装服务调用客户端的开发量。
+
+Feign 集成了 Ribbon
+
+利用 Ribbon 维护了 spring-cloud-provider-dept 的服务列表信息，并且通过轮询实现了客户端的负载均衡。而与 Ribbon 不同的是，通过 feign 只需要定义服务绑定接口且以声明式的方法，优雅而简单的实现了服务调用。
+
+### 2、Feign 使用
+
+#### 1、新建 Maven 工程 spring-cloud-consumer-dept-feign-81
+
+参考 spring-cloud-consumer-dept-80 新建 spring-cloud-consumer-dept-feign-81
+
+- 修改主启动类名字为 DeptConsumerFeignApp81
+
+- 修改 application.yaml
+
+  - instance-id: consumer-dept-feign-81
+  - port: 81
+
+- 修改 pom.xml，添加以下依赖
+
+  ```xml
+  <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-feign</artifactId>
+  </dependency>
+  ```
+
+#### 2、修改 spring-cloud-api
+
+- 修改 pom.xml，添加 feign 依赖
+
+  ```xml
+  <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-feign</artifactId>
+  </dependency>
+  ```
+
+- 新建 DeptClientService 接口
+
+  @FeignClient 注解用于指定从哪个服务中调用功能 ，注意里面的名称与被调用的服务名保持一致，并且不能包含下划线。
+
+  ```java
+  @FeignClient(value = "MICROSERVICECLOUD-DEPT")
+  public interface DeptClientService
+  {
+    @RequestMapping(value = "/dept/get/{id}",method = RequestMethod.GET)
+    public Dept get(@PathVariable("id") long id);
+   
+    @RequestMapping(value = "/dept/list",method = RequestMethod.GET)
+    public List<Dept> list();
+   
+    @RequestMapping(value = "/dept/add",method = RequestMethod.POST)
+    public boolean add(Dept dept);
+  }
+  ```
+
+#### 3、修改 spring-cloud-consumer-dept-feign-81 
+
+- 修改DeptControllerConsumer
+
+  添加并使用上一步新建的 DeptClientService 接口
+
+  ```java
+  @RestController
+  @RequestMapping("/consumer/dept")
+  public class DeptControllerConsumer {
+  
+      @Resource
+      private DeptClientService deptClientService;
+  
+      @PostMapping("/add")
+      public boolean add(@RequestBody Dept dept) {
+          return deptClientService.add(dept);
+      }
+  
+      @GetMapping(value = "/get/{id}")
+      public Dept get(@PathVariable("id") Long id) {
+          return deptClientService.get(id);
+      }
+  
+      @RequestMapping(value = "/list", method = RequestMethod.GET)
+      public List<Dept> list() {
+          return deptClientService.list();
+      }
+  }
+  ```
+
+- 修改 spring-cloud-consumer-dept-feign-81 的主启动类
+
+  添加 @EnableFeignClients 注解，删除 @RibbonClient
+
+  ```java
+  @SpringBootApplication
+  @EnableEurekaClient
+  @EnableFeignClients
+  public class DeptConsumerFeignApp81 {
+      public static void main(String[] args) {
+          SpringApplication.run(DeptConsumerFeignApp81.class, args);
+      }
+  }
+  ```
+
+#### 4、测试
+
+- 启动 Eureka 集群
+- 启动 部门微服务集群
+- 启动 spring-cloud-consumer-dept-feign-81
+- 访问：http://localhost:81/consumer/dept/list
+
+#### 5、总结
+
+Feign通过接口的方法调用Rest服务（之前是 Ribbon + RestTemplate ），该请求发送给Eureka服务器（http://MICROSERVICECLOUD-DEPT/dept/list），通过Feign直接找到服务接口，由于在进行服务调用的时候融合了Ribbon技术，所以也支持负载均衡作用。

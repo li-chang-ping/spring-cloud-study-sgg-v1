@@ -1,9 +1,9 @@
 server:
-  port: 80
+  port: 81
 
 eureka:
   instance:
-    instance-id: consumer-dept-80
+    instance-id: consumer-dept-feign-81
 
     # 心跳时间，即服务续约间隔时间（缺省为30s）
     lease-renewal-interval-in-seconds: 5
