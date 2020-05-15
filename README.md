@@ -19,7 +19,7 @@ spring-cloud-study-sgg-v1
 ├── spring-cloud-consumer-dept-80 -- 构建服务消费者
 ├── spring-cloud-consumer-dept-feign-81 -- 构建服务消费者
 ├── spring-cloud-provider-dept-hystrix-8004 -- Hystrix服务熔断
-├── spring-cloud-consumer-hystrix-dashboard -- Hystrix调用监控 
+├── spring-cloud-consumer-hystrix-dashboard-9001 -- Hystrix调用监控
 ├── spring-cloud-zuul-gateway-9527 -- Zuul路由网关 
 ├── spring-cloud-config-3344 -- config服务端 
 └── spring-cloud-config-client-3355 -- config客户端
