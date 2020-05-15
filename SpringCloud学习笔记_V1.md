@@ -1,4 +1,4 @@
-# ![image-20200514222025301](SpringCloud学习笔记_V1.assets/image-20200514222025301.png)SpringCloud学习笔记_V1
+# SpringCloud学习笔记_V1
 
 ## 一、工程环境搭建
 
