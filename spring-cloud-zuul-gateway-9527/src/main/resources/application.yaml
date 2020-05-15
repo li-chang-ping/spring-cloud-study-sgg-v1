@@ -22,9 +22,11 @@ info:
 
 zuul:
   routes:
-    mydept.serviceId: spring-cloud-provider-dept
-    mydept.path: /mydept/**
-    mycdept.serviceId: spring-cloud-consumer-dept
-    mycdept.path: /mycdept/**
+    mydept:
+      serviceId: spring-cloud-provider-dept
+      path: /mydept/**
+    mycdept:
+      serviceId: spring-cloud-consumer-dept
+      path: /mycdept/**
   ignored-services: "*"
   prefix: /lcp

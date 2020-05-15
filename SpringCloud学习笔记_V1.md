@@ -700,7 +700,7 @@ Eureka 采用了 C-S 的设计架构。Eureka Server 作为服务注册功能的
 
 <img src="SpringCloud学习笔记_V1.assets/image-20200512090836469.png" alt="image-20200512090836469" style="zoom:150%;" />
 
-<img src="SpringCloud学习笔记_V1.assets/图像.png" alt="图像" style="zoom:150%;" />
+<img src="SpringCloud学习笔记_V1.assets/image-20200515165137334.png" style="zoom:150%;" />
 
 Eureka 包含两个组件：`Eureka Server` 和 `Eureka Client`
 Eureka Server 提供服务注册服务，各个节点启动后，会在EurekaServer中进行注册，这样EurekaServer中的服务注册表中将会存储所有可用服务节点的信息，服务节点的信息可以在界面中直观的看到
@@ -1482,7 +1482,7 @@ Ribbon 和 Eureka 整合后 Consumer 可以直接根据服务名调用服务，�
 
 #### 1、架构说明
 
-![图像](SpringCloud学习笔记_V1.assets/图像-1589370910024.png)
+![图像](SpringCloud学习笔记_V1.assets/image-20200515165137337.png)
 
 Ribbon 在工作时分成两步
 
@@ -2531,8 +2531,9 @@ public class ZuulApp9527 {
 ```yaml
 zuul:
   routes:
-    mydept.serviceId: spring-cloud-provider-dept
-    mydept.path: /mydept/**
+    mydept:
+      serviceId: spring-cloud-provider-dept
+      path: /mydept/**
 ```
 
 原访问路径：http://localhost:9527/spring-cloud-provider-dept/dept/get/1
@@ -2551,21 +2552,24 @@ zuul:
 zuul:
   ignored-services: spring-cloud-provider-dept
   routes:
-    mydept.serviceId: spring-cloud-provider-dept
-    mydept.path: /mydept/**
+    mydept:
+      serviceId: spring-cloud-provider-dept
+      path: /mydept/**
 ```
 
 > 忽略单个服务时，填具体服务名，当有多个要忽略时，使用 `"*"`
 >
 > ```yaml
 > zuul:
->   ignored-services: "*"
->   routes:
->     mydept.serviceId: spring-cloud-provider-dept
->     mydept.path: /mydept/**
->     mycdept.serviceId: spring-cloud-consumer-dept
->     mycdept.path: /mycdept/**
->     ......
+> ignored-services: "*"
+> routes:
+>   mydept:
+>     serviceId: spring-cloud-provider-dept
+>       path: /mydept/**
+>   mycdept:
+>     serviceId: spring-cloud-consumer-dept
+>       path: /mycdept/**
+>  ......
 > ```
 
 测试
@@ -2584,13 +2588,15 @@ zuul:
 
 ```yaml
 zuul:
-  prefix: /lcp
-  ignored-services: "*"
   routes:
-    mydept.serviceId: spring-cloud-provider-dept
-    mydept.path: /mydept/**
-    mycdept.serviceId: spring-cloud-consumer-dept
-    mycdept.path: /mycdept/**
+    mydept:
+      serviceId: spring-cloud-provider-dept
+      path: /mydept/**
+    mycdept:
+      serviceId: spring-cloud-consumer-dept
+      path: /mycdept/**
+  ignored-services: "*"
+  prefix: /lcp
 ```
 
 测试
@@ -2602,3 +2608,44 @@ zuul:
 去掉前缀，访问失败
 
 ![image-20200515165137330](SpringCloud学习笔记_V1.assets/image-20200515165137330.png)
+
+### 4、Zuul 过滤器
+
+## 七、SpringCloud Config 分布式配置中心
+
+### 1、概述
+
+#### 分布式系统面临的问题---配置问题
+
+微服务意味着要将单体应用中的业务拆分成一个个子服务，每个服务的粒度相对较小，因此系统中会出现大量的服务。由于每个服务都需要必要的配置信息才能运行，所以一套集中式的、动态的配置管理设施是必不可少的。
+
+SpringCloud 提供了 ConfigServer 来解决这个问题，我们每一个微服务自己带着一个 application.yaml，上百个配置文件的管理....../(ㄒoㄒ)/~~
+
+#### 是什么
+
+![image-20200515165137339](SpringCloud学习笔记_V1.assets/image-20200515165137339.png)
+
+SpringCloud Config 为微服务架构中的微服务提供集中化的外部配置支持，配置服务器为各个不同微服务应用的所有环境提供了一个中心化的外部配置。
+
+SpringCloud Config 分为 服务端 和 客户端 两部分。
+
+服务端也称为分布式配置中心，它是一个独立的微服务应用，用来连接配置服务器并为客户端提供获取配置信息，加密/解密信息等访问接口。
+
+客户端则是通过指定的配置中心来管理应用资源，以及与业务相关的配置内容，并在启动的时候从配置中心获取和加载配置信息配置服务器默认采用git来存储配置信息，这样就有助于对环境配置进行版本管理，并且可以通过git客户端工具来方便的管理和访问配置内容。
+
+#### 能干什么
+
+1. 集中管理配置文件
+2. 不同环境不同配置，动态化的配置更新，分环境部署，比如 dev/test/prod/beta/release
+3. 运行期间动态调整配置，不再需要在每个服务部署的机器上编写配置文件，服务会向配置中心统一拉取自己的配置文件
+4. 当配置发生变化时，服务不需要重启即可感知到配置的变化并应用新的配置
+5. 将配置信息以 REST 接口的形式暴露
+
+#### 与 GitHub/Gitee 整合配置
+
+由于 SpringCloud Config 默认使用 Git 来存储配置文件（也支持 SVN 和 本地文件），但最推荐的还是 Git，而且使用的是 http/https 的形式访问。
+
+### SpringCloud Config 服务端配置
+
+
+
