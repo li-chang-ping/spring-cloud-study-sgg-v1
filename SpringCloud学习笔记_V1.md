@@ -2285,15 +2285,7 @@ feign:
        name: spring-cloud-consumer-hystrix-dashboard-9001
    ```
 
-4. 注意：所有 Provider（8001/8002/8003）如果想要被监控，都需要配置监控依赖
-
-   ```xml
-   <!-- actuator监控信息完善 -->
-   <dependency>
-       <groupId>org.springframework.boot</groupId>
-       <artifactId>spring-boot-starter-actuator</artifactId>
-   </dependency>
-   ```
+注意：所有 Provider（8001/8002/8003）如果想要被监控，都需要和  spring-cloud-provider-dept-hystrix-8004 一样配置
 
 #### 测试
 
@@ -2337,7 +2329,7 @@ feign:
 
 ![image-20200515110729824](SpringCloud学习笔记_V1.assets/image-20200515110729824.png)
 
-> 1. 只有被 Hystrix 控制的类或方法才能被监控到（有 @HystrixCommand）
+> 1. 没有 @HystrixCommand 的方法不会被监控
 > 2. 路径至少要被访问过一次，不然监控不到
 
 #### 补充：Feign 项目监控
@@ -2382,7 +2374,150 @@ public class DeptConsumerFeignApp81 {
 
 由于刚开始没有任何接口被访问，所以 ping 出来是空的
 
+> 有 @FeignClient 的类才会被监控
+
 参考：https://blog.csdn.net/chengqiuming/article/details/80783485
 
 ## 六、Zuul 路由网关
 
+### 1、概述
+
+#### 是什么
+
+读音：[zuul](https://fanyi.baidu.com/#en/zh/zuul)
+
+Zuul 包含了对请求的路由和过滤两个最主要的功能。
+
+其中路由功能负责将外部请求转发到具体的微服务实例上，是实现外部访问统一入口的基础。而过滤器功能则负责对请求的处理过程进行干预，是实现请求校验、服务聚合等功能的基础。
+
+Zuul 和 Eureka 进行整合，将 Zuul 自身注册为 Eureka 服务治理下的应用，同时从 Eureka 中获得其他微服务的消息，也即以后的访问微服务都是通过 Zuul 跳转后获得。
+
+> 注意：Zuul 服务最终还是会注册进 Eureka
+>
+> 提供：代理 + 路由 + 过滤 三大功能
+
+#### 能干嘛
+
+路由 + 过滤
+
+#### 官网资料
+
+https://github.com/Netflix/zuul/wiki/Getting-Started
+
+### 2、路由基本配置
+
+#### 新建 spring-cloud-zuul-gateway-9527
+
+##### pom.xml
+
+```xml
+<dependencies>
+    <!-- zuul路由网关 -->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-zuul</artifactId>
+    </dependency> 
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-eureka</artifactId>
+    </dependency>
+    <!-- actuator监控 -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <!--  hystrix容错-->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-hystrix</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-config</artifactId>
+    </dependency>
+    <!-- 日常标配 -->
+    <dependency>
+        <groupId>com.atguigu.springcloud</groupId>
+        <artifactId>microservicecloud-api</artifactId>
+        <version>${project.version}</version>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-jetty</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+    </dependency>
+    <!-- 热部署插件 -->
+    <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>springloaded</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-devtools</artifactId>
+    </dependency>
+</dependencies>
+```
+
+##### application.xml
+
+```yaml
+server: 
+  port: 9527
+ 
+spring: 
+  application:
+    name: spring-cloud-zuul-gateway
+ 
+eureka: 
+  client: 
+    service-url: 
+      defaultZone: http://eureka7001.com:7001/eureka,http://eureka7002.com:7002/eureka,http://eureka7003.com:7003/eureka  
+  instance:
+    instance-id: zuul-gateway-9527
+    prefer-ip-address: true 
+ 
+ 
+info:
+  app.name: spring-cloud-study-sgg-v1
+  company.name: www.lichangping.top
+  build.artifactId: $project.artifactId$
+  build.version: $project.version$
+```
+
+##### 修改 hosts
+
+hosts 不改也行
+
+```
+127.0.0.1  myzuul.com
+```
+
+##### 主启动类 ZuulApp9527
+
+```java
+@SpringBootApplication
+@EnableZuulProxy
+@EnableEurekaClient
+public class ZuulApp9527 {
+    public static void main(String[] args) {
+        SpringApplication.run(ZuulApp9527.class, args);
+    }
+}
+```
+
+##### 测试
+
+1. 启动 Eureka 集群，启动 spring-cloud-provider-dept-8001，启动 spring-cloud-zuul-gateway-9527
+
+2. 访问 http://localhost:8001/dept/get/1 测试 spring-cloud-provider-dept-8001 是否工作正常
+
+3. 访问 http://localhost:9527/spring-cloud-provider-dept/dept/get/1，测通过路由访问微服务
+
+   ![image-20200515154457791](SpringCloud学习笔记_V1.assets/image-20200515154457791.png)
