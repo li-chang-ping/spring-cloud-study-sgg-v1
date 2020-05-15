@@ -18,6 +18,7 @@
         <module>spring-cloud-eureka-7001</module>
         <module>spring-cloud-eureka-7002</module>
         <module>spring-cloud-eureka-7003</module>
+        <module>spring-cloud-consumer-hystrix-dashboard-9001</module>
     </modules>
     <packaging>pom</packaging>
 

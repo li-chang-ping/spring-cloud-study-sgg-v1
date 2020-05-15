@@ -1282,12 +1282,12 @@ spring:
 > ```yaml
 > eureka:
 > 	server:
->      # 测试时关闭自我保护机制，保证不可用服务及时剔除
->      enable-self-preservation: false
->      # 缩短 eureka server 清理无效节点的时间间隔，默认60000毫秒，即60秒，现在调整为间隔2秒
->      eviction-interval-timer-in-ms: 5000
->  # 要想见效再快一些，可以添加下面这些配置
->  instance:
+>   # 测试时关闭自我保护机制，保证不可用服务及时剔除
+>   enable-self-preservation: false
+>   # 缩短 eureka server 清理无效节点的时间间隔，默认60000毫秒，即60秒，现在调整为间隔2秒
+>   eviction-interval-timer-in-ms: 5000
+> # 要想见效再快一些，可以添加下面这些配置
+> instance:
 > 		lease-renewal-interval-in-seconds: 5
 > 		lease-expiration-duration-in-seconds: 10
 > ```
@@ -1299,10 +1299,14 @@ spring:
 > ```yaml
 > eureka:
 >   instance:
->   	# 心跳时间，即服务续约间隔时间（缺省为30s）
->     lease-renewal-interval-in-seconds: 5      
->     # 发呆时间，即服务续约到期时间（缺省为90s）
->     lease-expiration-duration-in-seconds: 10  
+>     # 心跳时间，即服务续约间隔时间（缺省为30s）
+>     lease-renewal-interval-in-seconds: 5
+>      # 发呆时间，即服务续约到期时间（缺省为90s）
+>     lease-expiration-duration-in-seconds: 10
+>   client:
+>     # 开启健康检查（依赖spring-boot-starter-actuator）
+>     healthcheck:
+>       enabled: true
 > ```
 
 ![image-20200513093250070](SpringCloud学习笔记_V1.assets/image-20200513093250070.png)
@@ -1801,13 +1805,16 @@ public class MySelfRule {
 
 官网：https://projects.spring.io/spring-cloud/spring-cloud.html#spring-cloud-feign
 
+#### Feign 是什么
+
 Feign 是一个声明式 Web Service 客户端。使用 Feign能让编写 Web Service 客户端更加简单, 它的使用方法是定义一个接口，然后在上面添加注解，同时也支持 JAX-RS 标准的注解。Feign 也支持可拔插式的编码器和解码器。Spring Cloud 对 Feign 进行了封装，使其支持了 Spring MVC 标准注解和 HttpMessageConverters。Feign 可以与 Eureka 和 Ribbon 组合使用以支持负载均衡。
 
 ![image-20200514142410568](SpringCloud学习笔记_V1.assets/image-20200514142410568.png)
 
 Feign是一个声明式的 Web Service 客户端，使得编写Web服务客户端变得非常容易，只需要创建一个接口，然后在上面添加注解即可。参考官网：https://github.com/OpenFeign/feign 
 
-Feign 能干什么
+#### Feign 能干什么
+
 Feign 旨在使编写 Java Http 客户端变得更容易。
 前面在使用Ribbon + RestTemplate 时，利用 RestTemplate 对 http 请求的封装处理，形成了一套模版化的调用方法。但是在实际开发中，由于对服务依赖的调用可能不止一处，往往一个接口会被多处调用，所以通常都会针对每个微服务自行封装一些客户端类来包装这些依赖服务的调用。所以，Feign 在此基础上做了进一步封装，由他来帮助我们定义和实现依赖服务接口的定义。在 Feign 的实现下，我们只需创建一个接口并使用注解的方式来配置它(以前是 Dao 接口上面标注 Mapper 注解,现在是一个微服务接口上面标注一个 Feign 注解即可)，即可完成对服务提供方的接口绑定，简化了使用 Spring cloud Ribbon 时，自动封装服务调用客户端的开发量。
 
@@ -2082,7 +2089,7 @@ public Dept processHystrixGet(@PathVariable("id") Long id) {
 #### 5、测试
 
 1. 启动 Eureka 集群，provider-dept 集群，spring-cloud-consumer-dept-80
-2. 访问：http://localhost/consumer/dept/get/1
+2. 访问：http://localhost/consumer/dept/get/111
 
 ![image-20200514213153927](SpringCloud学习笔记_V1.assets/image-20200514213153927.png)
 
@@ -2165,9 +2172,115 @@ feign:
 
    此时服务端 provider-dept 已经 down 了，由于做了服务降级处理，客户端在服务端不可用的情况下也会返回提示信息，而不会挂起耗死服务器
 
-### 5、服务监控 HystrixDashboard
+### 4、服务监控 HystrixDashboard
 
 除了隔离依赖服务的调用以外，Hystrix 还提供了准实时的调用监控（Hystrix Dashboard），Hystrix 会持续地记录所有通过 Hystrix 发起的请求的执行信息，并以统计报表和图形的形式展示给用户，包括每秒执行多少请求多少成功，多少失败等。Netflix 通过 hystrix-metrics-event-stream 项目实现了对以上指标的监控。Spring Cloud 也提供了 Hystrix Dashboard 的整合，对监控内容转化成可视化界面。
 
+#### 新建 spring-cloud-consumer-hystrix-dashboard-9001
 
+1. pom.xml
+
+   参考 spring-cloud-consumer-dept-feign-81 的 pom.xml 增加如下对 HystrixDashboard 支持的依赖
+
+   ```xml
+   <!-- hystrix和 hystrix-dashboard相关-->
+   <dependency>
+       <groupId>org.springframework.cloud</groupId>
+       <artifactId>spring-cloud-starter-hystrix</artifactId>
+   </dependency>
+   <dependency>
+       <groupId>org.springframework.cloud</groupId>
+       <artifactId>spring-cloud-starter-hystrix-dashboard</artifactId>
+   </dependency>
+   ```
+
+2. 主启动类 DeptConsumerHystrixDashboardApp9001
+
+   ```java
+   @SpringBootApplication
+   @EnableEurekaClient
+   @EnableHystrixDashboard
+   public class DeptConsumerHystrixDashboardApp9001 {
+       public static void main(String[] args) {
+           SpringApplication.run(DeptConsumerHystrixDashboardApp9001.class, args);
+       }
+   }
+   ```
+
+3. application.yaml
+
+   ```yaml
+   server:
+     port: 9001
+   
+   eureka:
+     instance:
+       instance-id: consumer-hystrix-dashboard-9001
+   
+       # 心跳时间，即服务续约间隔时间（缺省为30s）
+       lease-renewal-interval-in-seconds: 5
+       # 发呆时间，即服务续约到期时间（缺省为90s）
+       lease-expiration-duration-in-seconds: 10
+     client:
+       service-url:
+         defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+   
+   spring:
+     application:
+       name: spring-cloud-consumer-hystrix-dashboard-9001
+   ```
+
+4. 注意：所有 Provider（8001/8002/8003）如果想要被监控，都需要配置监控依赖
+
+   ```xml
+   <!-- actuator监控信息完善 -->
+   <dependency>
+       <groupId>org.springframework.boot</groupId>
+       <artifactId>spring-boot-starter-actuator</artifactId>
+   </dependency>
+   ```
+
+#### 测试
+
+1. 启动 Eureka 集群，启动 spring-cloud-provider-dept-hystrix-8004，启动 spring-cloud-consumer-hystrix-dashboard-9001
+
+2. 访问测试
+
+   1. http://localhost:8004/dept/get/1，访问成功的话和上面的差不多，不再贴图
+
+   2. http://localhost:8004/hystrix.stream，结果如下
+
+      ![image-20200515105145625](SpringCloud学习笔记_V1.assets/image-20200515105145625.png)
+
+      页面会不断的加载数据
+
+3. 监控测试
+
+   访问：http://localhost:9001/hystrix，填写监控地址
+
+   ![image-20200515110035740](SpringCloud学习笔记_V1.assets/image-20200515110035740.png)
+
+   监控结果
+
+   ![image-20200515110202577](SpringCloud学习笔记_V1.assets/image-20200515110202577.png)
+
+#### 监控面板图表含义
+
+- 7 色
+
+- 1 圆
+
+  实心圆：共有两种含义。它通过颜色的变化代表了实例的健康程度，它的健康度从绿色 < 黄色 < 橙色 < 红色递减。
+
+  该实心圆除了颜色的变化之外，它的大小也会根据实例的请求流量发生变化，流量越大该实心圆就越大。所以通过该实心圆的展示，就可以在大量的实例中快速的发现故障实例和高压力实例。
+
+- 1 线
+
+  曲线：用来记录2分钟内流量的相对变化，可以通过它来观察到流量的上升和下降趋势。
+
+整图说明
+
+![image-20200515110729824](SpringCloud学习笔记_V1.assets/image-20200515110729824.png)
+
+> 注意：只有被 Hystrix 控制的类或方法才能被监控到
 

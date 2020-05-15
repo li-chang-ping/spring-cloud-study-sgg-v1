@@ -46,3 +46,7 @@ info:
   company.name: www.lichangping.top
   build.artifactId: $project.artifactId$
   build.version: $project.version$
+
+endpoints:
+  actuator:
+    enabled: true
