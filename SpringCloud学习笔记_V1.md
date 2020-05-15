@@ -2107,7 +2107,7 @@ PS：这是浏览器插件自动美化 json 后的效果
 
 1. 为已有的 DeptClientService 接口新建一个 DeptClientServiceFallbackFactory 实现 FallbackFactory 接口，使其支持服务降级。
 
-   DeptClientServiceFallbackFactory.java
+   DeptClientServiceFallbackFactory.java，不要漏掉 `@Component`
 
    ```java
    /**
@@ -2171,6 +2171,61 @@ feign:
    ![image-20200514222211625](SpringCloud学习笔记_V1.assets/image-20200514222211625.png)
 
    此时服务端 provider-dept 已经 down 了，由于做了服务降级处理，客户端在服务端不可用的情况下也会返回提示信息，而不会挂起耗死服务器
+
+#### 补充：另一种写法
+
+除了可以为已有的 DeptClientService 接口新建一个 DeptClientServiceFallbackFactory 实现 FallbackFactory 接口，使其支持服务降级，还支持另外一种写法
+
+可以新建 DeptClientServiceImpl 类实现 DeptClientService 接口，在 DeptClientService 接口中的 @FeignClient 注解中添加 fallback 属性值
+
+##### 修改 spring-cloud-api 
+
+1. com.lcp.springcloud.service 下 新建 impl 包，新建 DeptClientServiceImpl 类实现 DeptClientService 接口
+
+   和上面一样，不要漏掉  `@Component` 注解
+
+   ```java
+   @Component
+   public class DeptClientServiceImpl implements DeptClientService {
+       @Override
+       public Dept get(long id) {
+           return new Dept().setDeptno(id)
+                   .setDname("该ID：" + id + "没有没有对应的信息,Consumer客户端提供的降级信息,此刻服务Provider已经关闭，信息来自：DeptClientServiceImpl")
+                   .setDb_source("no this database in MySQL");
+       }
+   
+       @Override
+       public List<Dept> list() { return null; }
+   
+       @Override
+       public boolean add(Dept dept) { return false; }
+   }
+   ```
+
+2. 在 DeptClientService 接口中的 @FeignClient 注解中添加 fallback 属性值，删除上面的 fallbackFactory 属性值
+
+   ```java
+   @FeignClient(value = "SPRING-CLOUD-PROVIDER-DEPT", 
+           fallback = DeptClientServiceImpl.class)
+   public interface DeptClientService {
+       @RequestMapping(value = "/dept/get/{id}", method = RequestMethod.GET)
+       Dept get(@PathVariable("id") long id);
+   
+       @RequestMapping(value = "/dept/list", method = RequestMethod.GET)
+       List<Dept> list();
+   
+       @RequestMapping(value = "/dept/add", method = RequestMethod.POST)
+       boolean add(Dept dept);
+   }
+   ```
+
+##### 测试
+
+步骤同上，可以看到如下结果
+
+![image-20200515141425512](SpringCloud学习笔记_V1.assets/image-20200515141425512.png)
+
+说明服务降级配置成功，这种写法也可以
 
 ### 4、服务监控 HystrixDashboard
 
@@ -2282,5 +2337,49 @@ feign:
 
 ![image-20200515110729824](SpringCloud学习笔记_V1.assets/image-20200515110729824.png)
 
-> 注意：只有被 Hystrix 控制的类或方法才能被监控到
+> 1. 只有被 Hystrix 控制的类或方法才能被监控到（有 @HystrixCommand）
+> 2. 路径至少要被访问过一次，不然监控不到
 
+#### 补充：Feign 项目监控
+
+如何上上面的 Feign 模块可以被监控，修改项目 spring-cloud-consumer-dept-feign-81
+
+pom.xml 添加如下依赖
+
+```xml
+<!--  hystrix -->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-hystrix</artifactId>
+</dependency>
+
+<!-- actuator监控信息完善 这个也是必需的依赖 -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+```
+
+修改启动类 DeptConsumerFeignApp81，添加 @EnableCircuitBreaker 注解
+
+```java
+@SpringBootApplication
+@EnableEurekaClient
+@EnableFeignClients
+@EnableCircuitBreaker
+public class DeptConsumerFeignApp81 {
+    public static void main(String[] args) {
+        SpringApplication.run(DeptConsumerFeignApp81.class, args);
+    }
+}
+```
+
+启动 spring-cloud-consumer-dept-feign-81
+
+先访问：http://localhost:81/consumer/dept/get/1，再访问 http://localhost:81/hystrix.stream
+
+![image-20200515135826967](SpringCloud学习笔记_V1.assets/image-20200515135826967.png)
+
+由于刚开始没有任何接口被访问，所以 ping 出来是空的
+
+参考：https://blog.csdn.net/chengqiuming/article/details/80783485
