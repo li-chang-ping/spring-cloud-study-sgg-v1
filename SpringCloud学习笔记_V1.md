@@ -2516,8 +2516,89 @@ public class ZuulApp9527 {
 
 1. 启动 Eureka 集群，启动 spring-cloud-provider-dept-8001，启动 spring-cloud-zuul-gateway-9527
 
-2. 访问 http://localhost:8001/dept/get/1 测试 spring-cloud-provider-dept-8001 是否工作正常
+2. 访问 http://localhost:8001/dept/get/1，测试 spring-cloud-provider-dept-8001 是否工作正常
 
-3. 访问 http://localhost:9527/spring-cloud-provider-dept/dept/get/1，测通过路由访问微服务
+3. 访问 http://localhost:9527/spring-cloud-provider-dept/dept/get/1，测试通过路由访问微服务
 
    ![image-20200515154457791](SpringCloud学习笔记_V1.assets/image-20200515154457791.png)
+
+### 3、路由访问映射规则
+
+#### 设置代理
+
+修改 zuul-gateway-9527 的 YAML，添加对 spring-cloud-provider-dept 的代理
+
+```yaml
+zuul:
+  routes:
+    mydept.serviceId: spring-cloud-provider-dept
+    mydept.path: /mydept/**
+```
+
+原访问路径：http://localhost:9527/spring-cloud-provider-dept/dept/get/1
+
+现访问路径：http://localhost:9527/mydept/dept/get/1，测试结果如下
+
+![image-20200515163004983](SpringCloud学习笔记_V1.assets/image-20200515163004983.png)
+
+但此时产生了问题：包含真实服务名称的原访问路径(http://localhost:9527/spring-cloud-provider-dept/dept/get/1)仍然可以访问，因此需要让路由忽略包含真实服务名的路径。
+
+#### 忽略真实服务名
+
+修改 YAML，为 zuul.ignored-services 属性赋值
+
+```yaml
+zuul:
+  ignored-services: spring-cloud-provider-dept
+  routes:
+    mydept.serviceId: spring-cloud-provider-dept
+    mydept.path: /mydept/**
+```
+
+> 忽略单个服务时，填具体服务名，当有多个要忽略时，使用 `"*"`
+>
+> ```yaml
+> zuul:
+>   ignored-services: "*"
+>   routes:
+>     mydept.serviceId: spring-cloud-provider-dept
+>     mydept.path: /mydept/**
+>     mycdept.serviceId: spring-cloud-consumer-dept
+>     mycdept.path: /mycdept/**
+>     ......
+> ```
+
+测试
+
+访问原路径：http://localhost:9527/spring-cloud-provider-dept/dept/get/1，发现已经不可访问
+
+![image-20200515164128946](SpringCloud学习笔记_V1.assets/image-20200515164128946.png)
+
+访问代理路径：http://localhost:9527/mydept/dept/get/1，依然可以正常访问
+
+![image-20200515164227721](SpringCloud学习笔记_V1.assets/image-20200515164227721.png)
+
+#### 设置统一公共前缀
+
+修改 YAML，为 zuul.prefix 赋值
+
+```yaml
+zuul:
+  prefix: /lcp
+  ignored-services: "*"
+  routes:
+    mydept.serviceId: spring-cloud-provider-dept
+    mydept.path: /mydept/**
+    mycdept.serviceId: spring-cloud-consumer-dept
+    mycdept.path: /mycdept/**
+```
+
+测试
+
+访问：http://localhost:9527/lcp/mydept/dept/get/1，访问成功
+
+![image-20200515165027530](SpringCloud学习笔记_V1.assets/image-20200515165027530.png)
+
+去掉前缀，访问失败
+
+![image-20200515165137330](SpringCloud学习笔记_V1.assets/image-20200515165137330.png)

@@ -19,3 +19,12 @@ info:
   company.name: www.lichangping.top
   build.artifactId: $project.artifactId$
   build.version: $project.version$
+
+zuul:
+  routes:
+    mydept.serviceId: spring-cloud-provider-dept
+    mydept.path: /mydept/**
+    mycdept.serviceId: spring-cloud-consumer-dept
+    mycdept.path: /mycdept/**
+  ignored-services: "*"
+  prefix: /lcp
