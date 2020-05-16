@@ -1,0 +1,29 @@
+server:
+  port: 3344
+
+spring:
+  application:
+    name:  spring-cloud-config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: git@github.com:li-chang-ping/spring-cloud-study-config-v1.git
+          # 在启动时就去 clone 仓库，有利于及时发现仓库连接问题
+          clone-on-start: true
+          # strict-host-key-checking: false
+      label: master
+
+
+
+eureka:
+  instance:
+    instance-id: config-server-3344
+
+    # 心跳时间，即服务续约间隔时间（缺省为30s）
+    lease-renewal-interval-in-seconds: 5
+    # 发呆时间，即服务续约到期时间（缺省为90s）
+    lease-expiration-duration-in-seconds: 10
+  client:
+    service-url:
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/

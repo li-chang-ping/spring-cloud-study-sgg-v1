@@ -20,6 +20,7 @@
         <module>spring-cloud-eureka-7003</module>
         <module>spring-cloud-consumer-hystrix-dashboard-9001</module>
         <module>spring-cloud-zuul-gateway-9527</module>
+        <module>spring-cloud-config-server-3344</module>
     </modules>
     <packaging>pom</packaging>
 

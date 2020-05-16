@@ -2647,5 +2647,231 @@ SpringCloud Config 分为 服务端 和 客户端 两部分。
 
 ### SpringCloud Config 服务端配置
 
+#### 1、在 GitHub 新建远程配置仓库
 
+1. 在 GitHub 上新建仓库 spring-cloud-study-config-v1，获取 ssh 地址：git@github.com:li-chang-ping/spring-cloud-study-config-v1.git
 
+2. 本地硬盘 clone 仓库，我直接 clone 在当前项目下，通过 .gitignore 排除该文件夹
+
+3. 在 spring-cloud-study-config-v1 新建 application.yaml，内容如下，文件编码必须为 UTF-8
+
+   ```yaml
+   spring:
+     profiles:
+       active:
+         - dev
+   ---
+   server:
+     port: 8201
+   spring:
+     profiles: dev
+     application:
+       name: spring-cloud-config-client
+   eureka:
+     client:
+       service-url:
+         defaultZone: http://eureka-dev.com:7001/eureka/
+   ---
+   server:
+     port: 8202
+   spring:
+     profiles: test
+     application:
+       name: spring-cloud-config-client
+   eureka:
+     client:
+       service-url:
+         defaultZone: http://eureka-test.com:7001/eureka/
+   ```
+
+4. 将 yaml 文件推送到 github
+
+#### 2、新建模块 spring-cloud-config-server-3344
+
+##### pom.xml
+
+```xml
+<dependencies>
+    <!-- springCloud Config -->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-config-server</artifactId>
+    </dependency>
+    <!-- 避免Config的Git插件报错：org/eclipse/jgit/api/TransportConfigCallback  -->
+   <dependency>
+       <groupId>org.eclipse.jgit</groupId>
+       <artifactId>org.eclipse.jgit</artifactId>
+       <version>4.10.0.201712302008-r</version>
+   </dependency>
+    <!-- 图形化监控 -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <!-- 熔断 -->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-hystrix</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-eureka</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-config</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-jetty</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+    </dependency>
+    <!-- 热部署插件 -->
+    <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>springloaded</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-devtools</artifactId>
+    </dependency>
+</dependencies> 
+```
+
+##### application.yaml
+
+```yaml
+server: 
+  port: 3344 
+  
+spring:
+  application:
+    name:  spring-cloud-config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: git@github.com:li-chang-ping/spring-cloud-study-config-v1.git
+          # 在启动时就去 clone 仓库，有利于及时发现仓库连接问题
+          clone-on-start: true
+          
+eureka:
+  instance:
+    instance-id: config-server-3344
+
+    # 心跳时间，即服务续约间隔时间（缺省为30s）
+    lease-renewal-interval-in-seconds: 5
+    # 发呆时间，即服务续约到期时间（缺省为90s）
+    lease-expiration-duration-in-seconds: 10
+  client:
+    service-url:
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+```
+
+##### 主启动类 ConfigServerApp3344
+
+ConfigServerApp3344.java
+
+```java
+@SpringBootApplication
+@EnableEurekaClient
+@EnableConfigServer
+public class ConfigServerApp3344 {
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigServerApp3344.class, args);
+    }
+}
+```
+
+##### 非常可能出现的错误 - 【大坑】
+
+在使用 ssh 连接 GitHub/Gitee 时非常可能出现以下错误
+
+情况一
+
+1. `xxxxx ...... Cannot clone or checkout repository`
+2. `xxxxx ...... cause com.jcraft.jsch.JSchException: Auth fail`
+
+如果出现以上两种错误，但是 git bash 中 push/pull 没有问题，多半时 ssh 密钥格式有问题
+
+输出一下本地的 ssh 私钥
+
+```shell
+cat ~/.ssh/id_rsa
+```
+
+如果以 `-----BEGIN OPENSSH PRIVATE KEY-----` 开头那就是密钥格式有问题，因为通过查阅[官方文档](https://cloud.spring.io/spring-cloud-config/reference/html/#_authentication)可知
+
+![image-20200516212104859](SpringCloud学习笔记_V1.assets/image-20200516212104859.png)
+
+SpringCloud Config 支持的私钥必须以 `-----BEGIN RSA PRIVATE KEY-----` 开头，那就参考官方给出的命令示例，使用如下命令重新生成密钥
+
+```··shell
+ssh-keygen -m PEM -t rsa -b 4096 -C "xxxxxxx@xx.com"
+```
+
+然后再检查生成的私钥是否以 `-----BEGIN RSA PRIVATE KEY-----` 没有问题后删除 GitHub/Gitee 原有的 SSH 公钥，将新生成的添加上去。
+
+情况二
+
+报错：`xxxx ......  reject HostKey xxxxx`
+
+![](SpringCloud学习笔记_V1.assets/rejectHostKey.png)
+
+在 application.yaml 中添加如下配置即可解决
+
+```yaml
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          strict-host-key-checking: false
+```
+
+#### 3、测试
+
+1. 启动 Eureka 集群，启动 spring-cloud-config-server-3344
+2. 访问
+   1. http://localhost:3344/application-dev.yaml
+   2. http://localhost:3344/application-test.yaml
+   3. http://localhost:3344/application-xxx.yaml，这是不存在的，会报404
+
+成功实现了用 SpringCloud Config 通过 GitHub 获取配置信息
+
+#### 4、配置文件读取规则
+
+查看官网：https://cloud.spring.io/spring-cloud-static/spring-cloud-config/2.2.2.RELEASE/reference/html/
+
+The HTTP service has resources in the following form:
+
+```
+/{application}/{profile}[/{label}]
+/{application}-{profile}.yml
+/{label}/{application}-{profile}.yml
+/{application}-{profile}.properties
+/{label}/{application}-{profile}.properties
+```
+
+1. /{application}/{profile}[/{label}]
+   - 访问测试
+     - http://localhost:3344/application/dev/master
+     - http://localhost:3344/application/test/master
+     - http://localhost:3344/application/xxx/master
+2. /{application}-{profile}.yml
+   - 访问测试
+     - http://localhost:3344/application-dev.yaml
+     - http://localhost:3344/application-test.yaml
+     - http://localhost:3344/application-xxx.yaml
+3. /{label}/{application}-{profile}.yml
+   - 访问测试
+     - http://localhost:3344/master/application-dev.yaml
+     - http://localhost:3344/master/application-test.yaml
+     - http://localhost:3344/master/application-xxx.yaml
