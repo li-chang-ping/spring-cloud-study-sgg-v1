@@ -1,10 +1,27 @@
+#spring:
+#  cloud:
+#    config:
+#      # 需要从github上读取的资源名称，注意没有yml后缀名
+#      name: spring-cloud-config-client
+#      # 本次访问的配置项
+#      profile: test
+#      label: master
+#      # 本微服务启动后先去找3344号服务，通过SpringCloudConfig获取GitHub的服务地址
+#      uri: http://localhost:3344
+
+#通过 Config Server 的服务名获取配置文件，而不关心 Config Server 的具体地址和端口，这样可以将 Config Server，从而达到高可用
 spring:
   cloud:
     config:
       # 需要从github上读取的资源名称，注意没有yml后缀名
       name: spring-cloud-config-client
       # 本次访问的配置项
-      profile: dev
+      profile: test
       label: master
-      # 本微服务启动后先去找3344号服务，通过SpringCloudConfig获取GitHub的服务地址
-      uri: http://localhost:3344
+      discovery:
+        enabled: true
+        service-id: spring-cloud-config-server
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/

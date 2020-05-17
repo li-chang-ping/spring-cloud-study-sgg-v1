@@ -3040,5 +3040,31 @@ public class ConfigClientApp3355 {
 
    ![image-20200517170006649](SpringCloud学习笔记_V1.assets/image-20200517170006649.png)
 
-成功实现了客户端 3355 访问 SpringCloud Config3344 通过 GitHub 获取配置信息
+成功实现了客户端 3355 访问 SpringCloud Config3344 通过 GitHub 获取配置信息 
+
+### 4、SpringCloud Config 配置实战
+
+目前情况：Config Server 服务端配置完成并通过测试，可以通过 Config Server 获取 GitHub 上的配置
+
+尝试将 Eureka Server 和 Dept Provider 的配置由 GItHub管理
+
+#### 1、上传配置文件到 GitHub
+
+spring-cloud-eureka-server
+
+
+
+
+
+
+
+### 5、SpringCloud Config 集群
+
+参考：https://blog.csdn.net/forezp/article/details/81041045
+
+
+
+
+
+
 
