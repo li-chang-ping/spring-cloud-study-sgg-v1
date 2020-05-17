@@ -2645,7 +2645,7 @@ SpringCloud Config 分为 服务端 和 客户端 两部分。
 
 由于 SpringCloud Config 默认使用 Git 来存储配置文件（也支持 SVN 和 本地文件），但最推荐的还是 Git，而且使用的是 http/https 的形式访问。
 
-### SpringCloud Config 服务端配置
+### 2、SpringCloud Config 服务端配置
 
 #### 1、在 GitHub 新建远程配置仓库
 
@@ -2659,31 +2659,19 @@ SpringCloud Config 分为 服务端 和 客户端 两部分。
    spring:
      profiles:
        active:
-         - dev
+       - dev
    ---
-   server:
-     port: 8201
    spring:
-     profiles: dev
-     application:
-       name: spring-cloud-config-client
-   eureka:
-     client:
-       service-url:
-         defaultZone: http://eureka-dev.com:7001/eureka/
+     profiles: dev     #开发环境
+     application: 
+       name: spring-cloud-config-server-dev
    ---
-   server:
-     port: 8202
    spring:
-     profiles: test
-     application:
-       name: spring-cloud-config-client
-   eureka:
-     client:
-       service-url:
-         defaultZone: http://eureka-test.com:7001/eureka/
+     profiles: test   #测试环境
+     application: 
+       name: spring-cloud-config-server-test
    ```
-
+   
 4. 将 yaml 文件推送到 github
 
 #### 2、新建模块 spring-cloud-config-server-3344
@@ -2875,3 +2863,182 @@ The HTTP service has resources in the following form:
      - http://localhost:3344/master/application-dev.yaml
      - http://localhost:3344/master/application-test.yaml
      - http://localhost:3344/master/application-xxx.yaml
+
+### 3、SpringCloud Config 客户端配置
+
+#### 1、在配置仓库新建 spring-cloud-config-client.yaml
+
+```yaml
+spring:
+  profiles:
+    active:
+      - dev
+---
+server:
+  port: 8201
+spring:
+  profiles: dev
+  application:
+    name: spring-cloud-config-client
+eureka:
+  instance:
+    instance-id: config-client-3355
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+  client:
+    service-url:
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+---
+server:
+  port: 8202
+spring:
+  profiles: test
+  application:
+    name: spring-cloud-config-client
+eureka:
+  instance:
+    instance-id: config-client-3355
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+  client:
+    service-url:
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+```
+
+提交到 GitHub
+
+#### 2、新建 spring-cloud-config-client-3355
+
+虽然上面的模块名都以 端口号结尾，但这里只是象征性的写个 3355，该模块会在启动时从 Config Server 获取远程库的配置文件，最终端口号以获取到的配置文件为准。
+
+##### pom.xml
+
+```xml
+<dependencies>
+    <!-- SpringCloud Config客户端 -->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-config</artifactId>
+    </dependency> 
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-hystrix</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-eureka</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-config</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-jetty</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+    </dependency> 
+    <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>springloaded</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-devtools</artifactId>
+    </dependency>
+</dependencies> 
+```
+
+##### bootstrap.yaml【注意】
+
+**是什么**
+
+applicaiton.yaml 是用户级的资源配置项
+
+bootstrap.yaml 是系统级的，优先级更加高
+
+Spring Cloud会创建一个`Bootstrap Context`，作为 Spring 应用的`Application Context`的父上下文。初始化的时候，`Bootstrap Context`负责从外部源加载配置属性并解析配置。这两个上下文共享一个从外部获取的`Environment`。`Bootstrap`属性有高优先级，默认情况下，它们不会被本地配置覆盖。 `Bootstrap context`和`Application Context`有着不同的约定，所以新增了一个`bootstrap.yml`文件，保证`Bootstrap Context`和`Application Context`配置的分离。
+
+**内容**
+
+```yaml
+spring:
+  cloud:
+    config:
+      # 需要从github上读取的资源名称，注意没有yml后缀名
+      name: spring-cloud-config-client
+      # 本次访问的配置项
+      profile: dev
+      label: master
+      # 本微服务启动后先去找3344号服务，通过SpringCloudConfig获取GitHub的服务地址
+      uri: http://localhost:3344  
+```
+
+##### application.yaml
+
+```yaml
+spring:
+  application:
+    name: spring-cloud-config-client
+```
+
+##### ConfigClientRest.java
+
+新建 ConfigClientRest，验证能否从 GitHub 上读取配置
+
+```java
+@RestController
+public class ConfigClientRest {
+
+    @Value("${spring.application.name}")
+    private String applicationName;
+
+    @Value("${eureka.client.service-url.defaultZone}")
+    private String eurekaServers;
+
+    @Value("${server.port}")
+    private String port;
+
+    @RequestMapping("/config")
+    public String getConfig() {
+        String str = "applicationName:" + applicationName + "\t\n eurekaServers:" + eurekaServers + "\t\n port: " + port;
+        System.out.println("yaml-info:\n " + str);
+        return "applicationName: " + applicationName + "\t eurekaServers:" + eurekaServers + "\t port: " + port;
+    }
+}
+```
+
+#### 3、主启动类 ConfigClientApp3355
+
+```java
+@SpringBootApplication
+@EnableEurekaClient
+public class ConfigClientApp3355 {
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigClientApp3355.class, args);
+    }
+}
+```
+
+#### 4、测试
+
+1. 启动 Eureka 集群，启动 spring-cloud-config-server-3344，启动 spring-cloud-config-client-3355
+
+2. 配置中心自测，访问：http://localhost:3344/spring-cloud-config-client/dev/master
+
+3. config-client 测试，访问：http://localhost:8201/config，其实只要 spring-cloud-config-client-3355 能正常启动，并在 Eureka 中看到，就证明该模块已经成功读取到了配置。
+
+   ![image-20200517170006649](SpringCloud学习笔记_V1.assets/image-20200517170006649.png)
+
+成功实现了客户端 3355 访问 SpringCloud Config3344 通过 GitHub 获取配置信息
+
