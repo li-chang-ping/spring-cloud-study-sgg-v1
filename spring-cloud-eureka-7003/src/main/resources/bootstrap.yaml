@@ -1,0 +1,7 @@
+spring:
+  cloud:
+    config:
+      name: spring-cloud-eureka-server
+      profile: 7003
+      label: master
+      uri: http://localhost:3344

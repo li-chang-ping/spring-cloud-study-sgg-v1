@@ -2933,10 +2933,6 @@ eureka:
         <artifactId>spring-cloud-starter-eureka</artifactId>
     </dependency>
     <dependency>
-        <groupId>org.springframework.cloud</groupId>
-        <artifactId>spring-cloud-starter-config</artifactId>
-    </dependency>
-    <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-jetty</artifactId>
     </dependency>
@@ -3050,7 +3046,110 @@ public class ConfigClientApp3355 {
 
 #### 1、上传配置文件到 GitHub
 
-spring-cloud-eureka-server
+##### spring-cloud-eureka-server.yaml
+
+为了便于观察效果，`instance-id` 均由 `eureka-700x` 改为 `eureka-config-700x`
+
+```yaml
+spring:
+  profiles:
+    active:
+      - 7001
+---
+server:
+  port: 7001
+spring:
+  profiles: 7001
+  application:
+    name: spring-cloud-eureka
+eureka:
+  instance:
+    hostname: eureka7001.com
+    instance-id: eureka-config-7001
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+---
+server:
+  port: 7002
+spring:
+  profiles: 7002
+  application:
+    name: spring-cloud-eureka
+eureka:
+  instance:
+    hostname: eureka7002.com
+    instance-id: eureka-config-7002
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7003.com:7003/eureka/
+---
+server:
+  port: 7003
+spring:
+  profiles: 7003
+  application:
+    name: spring-cloud-eureka
+eureka:
+  instance:
+    hostname: eureka7003.com
+    instance-id: eureka-config-7003
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/ 
+```
+
+spring-cloud-provider-dept.yaml
+
+```yaml
+
+```
+
+#### 2、改造 Eureka Server，使用远程配置文件
+
+此处以 spring-cloud-eureka-7001 为例
+
+##### 修改 pom.xml
+
+添加 SpringCloud Config 的支持
+
+```xml
+<!-- SpringCloud Config客户端 -->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-config</artifactId>
+</dependency>
+```
+
+##### 新建 bootstrap.yaml
+
+```yaml
+spring:
+  cloud:
+    config:
+      name: spring-cloud-eureka-server
+      profile: 7001
+      label: master
+      uri: http://localhost:3344
+```
+
+##### 按照上述步骤改造 spring-cloud-eureka-7002/7003
+
+##### 测试
+
+1. 启动 spring-cloud-config-server-3344，会报错找不到 Eureka Server，不过不要紧，服务依然可以运行，主功能不受影响
+
+2. 启动 Eureka Server 集群，访问 http://localhost:7001/，结果如下
+
+   ![image-20200517220729479](SpringCloud学习笔记_V1.assets/image-20200517220729479.png)
+
+   可以看到 Status 中是 `eureka-config-700x` 说明 Eureka Server 使用的 GItHub的配置，改造成功
 
 
 
