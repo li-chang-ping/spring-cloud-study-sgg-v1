@@ -3105,17 +3105,133 @@ eureka:
       defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/ 
 ```
 
-spring-cloud-provider-dept.yaml
+##### spring-cloud-provider-dept.yaml
+
+为了便于观察效果，`instance-id` 均由 `provider-dept-800x` 改为 `provider-dept-config-800x`，port 由 `800x` 改为 `1000x`
 
 ```yaml
-
+spring:
+  profiles:
+    active:
+      - 10001
+---
+server:
+  port: 10001
+mybatis:
+  config-location: classpath:mybatis/mybatis.cfg.xml
+  type-aliases-package: com.lcp.springcloud.entities
+  mapper-locations:
+    - classpath:mybatis/mapper/**/*.xml
+spring:
+  profiles: 10001
+  application:
+    name: spring-cloud-provider-dept
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/cloudDB01
+    username: root
+    password: 123456
+    dbcp2:
+      min-idle: 5
+      initial-size: 5
+      max-total: 5
+      max-wait-millis: 200
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+  instance:
+    instance-id: provider-dept-config-10001
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+info:
+  app.name: spring-cloud-study-sgg-v1
+  company.name: www.lichangping.top
+  build.artifactId: $project.artifactId$
+  build.version: $project.version$
+---
+server:
+  port: 10002
+mybatis:
+  config-location: classpath:mybatis/mybatis.cfg.xml
+  type-aliases-package: com.lcp.springcloud.entities
+  mapper-locations:
+    - classpath:mybatis/mapper/**/*.xml
+spring:
+  profiles: 10002
+  application:
+    name: spring-cloud-provider-dept
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/cloudDB02
+    username: root
+    password: 123456
+    dbcp2:
+      min-idle: 5
+      initial-size: 5
+      max-total: 5
+      max-wait-millis: 200
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+  instance:
+    instance-id: provider-dept-config-10002
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+info:
+  app.name: spring-cloud-study-sgg-v1
+  company.name: www.lichangping.top
+  build.artifactId: $project.artifactId$
+  build.version: $project.version$
+---
+server:
+  port: 10003
+mybatis:
+  config-location: classpath:mybatis/mybatis.cfg.xml
+  type-aliases-package: com.lcp.springcloud.entities
+  mapper-locations:
+    - classpath:mybatis/mapper/**/*.xml
+spring:
+  profiles: 10003
+  application:
+    name: spring-cloud-provider-dept
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/cloudDB03
+    username: root
+    password: 123456
+    dbcp2:
+      min-idle: 5
+      initial-size: 5
+      max-total: 5
+      max-wait-millis: 200
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+  instance:
+    instance-id: provider-dept-config-10003
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+info:
+  app.name: spring-cloud-study-sgg-v1
+  company.name: www.lichangping.top
+  build.artifactId: $project.artifactId$
+  build.version: $project.version$
 ```
 
-#### 2、改造 Eureka Server，使用远程配置文件
+#### 2、改造 Eureka 集群，使用远程配置文件
 
 此处以 spring-cloud-eureka-7001 为例
 
-##### 修改 pom.xml
+##### 1、修改 pom.xml
 
 添加 SpringCloud Config 的支持
 
@@ -3127,7 +3243,7 @@ spring-cloud-provider-dept.yaml
 </dependency>
 ```
 
-##### 新建 bootstrap.yaml
+##### 2、新建 bootstrap.yaml
 
 ```yaml
 spring:
@@ -3139,9 +3255,9 @@ spring:
       uri: http://localhost:3344
 ```
 
-##### 按照上述步骤改造 spring-cloud-eureka-7002/7003
+按照上述步骤改造 spring-cloud-eureka-7002/7003
 
-##### 测试
+##### 3、测试
 
 1. 启动 spring-cloud-config-server-3344，会报错找不到 Eureka Server，不过不要紧，服务依然可以运行，主功能不受影响
 
@@ -3151,19 +3267,117 @@ spring:
 
    可以看到 Status 中是 `eureka-config-700x` 说明 Eureka Server 使用的 GItHub的配置，改造成功
 
+不过我觉得 Eureka Server 的配置就不用从 Config Server 获取了，Eureka Server 作为注册中心，应该是所有微服务中最先启动的，所以我又将 Eureka 集群改回使用本地配置文件。
 
+#### 3、改造 Dept Provider 集群，使用远程配置文件
 
+此处以 spring-cloud-provider-dept-8001 为例
 
+##### 1、修改 pom.xml
 
+和上面一样，添加 SpringCloud Config 的支持
 
+```xml
+<!-- SpringCloud Config客户端 -->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-config</artifactId>
+</dependency>
+```
 
-### 5、SpringCloud Config 集群
+##### 2、新建 bootstrap.yaml
+
+```yaml
+spring:
+  cloud:
+    config:
+      name: spring-cloud-provider-dept
+      profile: 8001
+      label: master
+      uri: http://localhost:3344
+```
+
+按照上述步骤改造 spring-cloud-provider-dept-8002/8003
+
+##### 3、测试
+
+再上一个测试的基础上，启动 Dpet Provider 集群
+
+在 Eureka 中查看，结果如下
+
+![image-20200518110936612](SpringCloud学习笔记_V1.assets/image-20200518110936612.png)
+
+说明 GItHub 的配置文件生效，访问：http://localhost:10001/dept/get/1，结果如下
+
+![image-20200518111118469](SpringCloud学习笔记_V1.assets/image-20200518111118469.png)
+
+Dpet Provider 集群改造成功
+
+### 5、Config Server 集群
+
+Config Server 集群的搭建比较简单，主要就是要把 Config Server 作为 Eureka Client 注册进 Eureka Server，这样其它微服务就可以通过服务名而不是具体的 IP 地址和端口号找到 Config Server
+
+> 注意：所有的微服务都需要注册进 Eureka Server
+
+####  1、新建 spring-cloud-config-server-3345/3346
+
+参照上面新建 spring-cloud-config-server-3344 的过程新建 spring-cloud-config-server-3345，spring-cloud-config-server-3346
+
+#### 2、修改 Config Client 的 bootstrap.yaml
+
+凡是从 Config Server 获取配置信息的都可以看做 Config Client
+
+这里以上面的 spring-cloud-config-client-3355 为例
+
+原来的 bootstrap.yaml
+
+```yaml
+spring:
+  cloud:
+    config:
+      # 需要从github上读取的资源名称，注意没有yml后缀名
+      name: spring-cloud-config-client
+      # 本次访问的配置项
+      profile: test
+      label: master
+      # 本微服务启动后先去找3344号服务，通过SpringCloudConfig获取GitHub的服务地址
+      uri: http://localhost:3344
+```
+
+修改后
+
+```yaml
+spring:
+  cloud:
+    config:
+      # 需要从github上读取的资源名称，注意没有yml后缀名
+      name: spring-cloud-config-client
+      # 本次访问的配置项
+      profile: test
+      label: master
+      discovery:
+        enabled: true
+        service-id: spring-cloud-config-server
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+```
+
+修改后的 YAML 去掉了 uri，添加了 discovery 和 eureka 的相关配置，这样一来，服务就不要知道 Config Server 的具体 IP 和 端口号，只需要拿着服务名去 Eureka Server 查找即可，因此 Config Server 可以很容的集群化
+
+#### 3、测试
+
+1. 启动 Eureka 集群，启动 Config Server 集群
+
+2. 启动 spring-cloud-config-client-3355，观察输出日志中获取配置的端口号，一下是我反复启动几次的结果
+
+   ![image-20200518145233962](SpringCloud学习笔记_V1.assets/image-20200518145233962.png)
+
+   ![image-20200518145307049](SpringCloud学习笔记_V1.assets/image-20200518145307049.png)
+
+   ![image-20200518145414031](SpringCloud学习笔记_V1.assets/image-20200518145414031.png)
+
+可以看到，通过 Eureka 集群 spring-cloud-config-client-3355 可以使用服务名从任意一个 Config Server 获取配置，Config Server 集群搭建完成。
 
 参考：https://blog.csdn.net/forezp/article/details/81041045
-
-
-
-
-
-
-
