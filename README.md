@@ -16,13 +16,15 @@ spring-cloud-study-sgg-v1
 ├── spring-cloud-provider-dept-8001 -- 构建服务提供者集群
 ├── spring-cloud-provider-dept-8002 -- 构建服务提供者集群
 ├── spring-cloud-provider-dept-8003 -- 构建服务提供者集群
+├── spring-cloud-provider-dept-hystrix-8004 -- Hystrix服务熔断
 ├── spring-cloud-consumer-dept-80 -- 构建服务消费者
 ├── spring-cloud-consumer-dept-feign-81 -- 构建服务消费者
-├── spring-cloud-provider-dept-hystrix-8004 -- Hystrix服务熔断
 ├── spring-cloud-consumer-hystrix-dashboard-9001 -- Hystrix调用监控
-├── spring-cloud-zuul-gateway-9527 -- Zuul路由网关 
-├── spring-cloud-config-3344 -- config服务端 
-└── spring-cloud-config-client-3355 -- config客户端
+├── spring-cloud-config-3344 -- config服务端
+├── spring-cloud-config-3345 -- config服务端
+├── spring-cloud-config-3346 -- config服务端 
+├── spring-cloud-config-client-3355 -- config客户端
+└── spring-cloud-zuul-gateway-9527 -- Zuul路由网关
 ```
 
 ## 项目搭建
@@ -31,3 +33,8 @@ spring-cloud-study-sgg-v1
 
 ## 项目启动
 
+1. 启动 Eureka Server 集群
+2. 启动 Config Server 集群
+3. 启动 Zuul 网关
+4. 启动 Dept Provider 集群
+5. 启动其它微服务
