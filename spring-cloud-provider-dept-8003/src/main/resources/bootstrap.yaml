@@ -1,0 +1,7 @@
+spring:
+  cloud:
+    config:
+      name: spring-cloud-provider-dept
+      profile: 10003
+      label: master
+      uri: http://localhost:3344
