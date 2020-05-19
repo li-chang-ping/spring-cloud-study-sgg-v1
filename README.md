@@ -1,4 +1,4 @@
-# SpringCloud 学习笔记
+# Spring Cloud 学习笔记
 
 ## 项目版本
 
