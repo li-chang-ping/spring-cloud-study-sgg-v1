@@ -6,7 +6,7 @@ spring cloud版本：Dalston.SR1
 
 spring boot版本：1.5.19.RELEASE
 
-> ​	约定 > 配置 > 编码
+> 约定 > 配置 > 编码
 
 ### 1、构建父工程 spring-cloud-study-sgg-v1
 
@@ -688,6 +688,12 @@ Netflix 在设计 Eureka 是遵守 AP 原则
 
 [CAP原则]([https://baike.baidu.com/item/CAP%E5%8E%9F%E5%88%99/5712863?fr=aladdin](https://baike.baidu.com/item/CAP原则/5712863?fr=aladdin)) 又称 CAP 定理，指的是在一个分布式系统中， Consistency（一致性）、 Availability（可用性）、Partition tolerance（分区容错性），三者不可得兼。
 
+### 2、服务治理概念
+
+在传统的 rpc 远程调用框架中，管理每个服务与服务之间依赖关系比较复杂，所以需要服务治理来管理服务与服务之间的依赖关系，可以实现服务调用、负载均衡、容错、实现服务发现与注册。
+
+参考：https://segmentfault.com/a/1190000010224335
+
 ### 2、原理
 
 #### 1、Eureka 基本架构
@@ -702,18 +708,20 @@ Eureka 采用了 C-S 的设计架构。Eureka Server 作为服务注册功能的
 
 <img src="SpringCloud学习笔记_V1.assets/image-20200515165137334.png" style="zoom:150%;" />
 
+#### 2、Eureka 两大组件
+
 Eureka 包含两个组件：`Eureka Server` 和 `Eureka Client`
 Eureka Server 提供服务注册服务，各个节点启动后，会在EurekaServer中进行注册，这样EurekaServer中的服务注册表中将会存储所有可用服务节点的信息，服务节点的信息可以在界面中直观的看到
 
 EurekaClient 是一个 Java 客户端，用于简化 Eureka Server 的交互，客户端同时也具备一个内置的、使用轮询(round-robin) 负载算法的负载均衡器。在应用启动后，将会向 Eureka Server 发送心跳（默认周期为30秒）。如果Eureka Server 在多个心跳周期内没有接收到某个节点的心跳，Eureka Server 将会从服务注册表中把这个服务节点移除（默认90秒）。
 
-#### 2、三大角色
+#### 3、三大角色
 
 1. Eureka Server ：提供服务注册与发现
 2. Service Provider ：服务提供方，将自身服务注册到 Eureka Server，从而使服务消费方能够找到
 3. Service Consumer ：服务消费方，从 Eureka Server 获取注册服务列表，从而能够消费服务
 
-#### 3、Eureka 自我保护机制
+#### 4、Eureka 自我保护机制
 
 现象
 
@@ -1258,7 +1266,7 @@ eureka:
     # false表示不向注册中心注册自己，配置集群时需设为 true
     register-with-eureka: true
     # false表示自己端就是注册中心，我的职责就是维护服务实例，并不需要去检索服务。
-    fetch-registry: false
+    fetch-registry: true
     service-url:
       # 设置与Eureka Server交互的地址查询服务和注册服务都需要依赖这个地址。
       # defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
@@ -1282,14 +1290,14 @@ spring:
 > ```yaml
 > eureka:
 > 	server:
->   # 测试时关闭自我保护机制，保证不可用服务及时剔除
->   enable-self-preservation: false
->   # 缩短 eureka server 清理无效节点的时间间隔，默认60000毫秒，即60秒，现在调整为间隔2秒
->   eviction-interval-timer-in-ms: 5000
-> # 要想见效再快一些，可以添加下面这些配置
-> instance:
-> 		lease-renewal-interval-in-seconds: 5
-> 		lease-expiration-duration-in-seconds: 10
+>           # 测试时关闭自我保护机制，保证不可用服务及时剔除
+>           enable-self-preservation: false
+>           # 缩短 eureka server 清理无效节点的时间间隔，默认60000毫秒，即60秒，现在调整为间隔2秒
+>           eviction-interval-timer-in-ms: 2000
+>         # 要想见效再快一些，可以添加下面这些配置
+>         instance:
+>                 lease-renewal-interval-in-seconds: 5
+>                 lease-expiration-duration-in-seconds: 10
 > ```
 >
 > 参考：spring cloud eureka 参数配置：https://www.jianshu.com/p/e2bebfb0d075
@@ -1298,15 +1306,15 @@ spring:
 >
 > ```yaml
 > eureka:
->   instance:
->     # 心跳时间，即服务续约间隔时间（缺省为30s）
->     lease-renewal-interval-in-seconds: 5
->      # 发呆时间，即服务续约到期时间（缺省为90s）
->     lease-expiration-duration-in-seconds: 10
->   client:
->     # 开启健康检查（依赖spring-boot-starter-actuator）
->     healthcheck:
->       enabled: true
+>       instance:
+>         # 心跳时间，即服务续约间隔时间（缺省为30s）
+>         lease-renewal-interval-in-seconds: 5
+>          # 发呆时间，即服务续约到期时间（缺省为90s）
+>         lease-expiration-duration-in-seconds: 10
+>       client:
+>         # 开启健康检查（依赖spring-boot-starter-actuator）
+>         healthcheck:
+>           enabled: true
 > ```
 
 ![image-20200513093250070](SpringCloud学习笔记_V1.assets/image-20200513093250070.png)
@@ -3380,4 +3388,4 @@ eureka:
 
 可以看到，通过 Eureka 集群 spring-cloud-config-client-3355 可以使用服务名从任意一个 Config Server 获取配置，Config Server 集群搭建完成。
 
-参考：https://blog.csdn.net/forezp/article/details/81041045
+参考：https://blog.csdn.net/forezp/article/details/8104104
