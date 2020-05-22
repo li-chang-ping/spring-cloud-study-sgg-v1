@@ -1040,6 +1040,16 @@ public class DeptProviderApp8001 {
 }
 ```
 
+> 更正
+>
+> `@EnableDiscoveryClient` 该注解不加也可以(不需要加)，因为这里已经有 `@EnableEurekaClient` 了
+>
+> 参考：
+>
+> https://blog.csdn.net/zheng199172/article/details/82466139
+>
+> https://blog.csdn.net/Ezreal_King/article/details/72594535?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-2.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-2.nonecase
+
 ##### 3、测试
 
 先启动 EurekaServerApp7001，再启动 DeptProviderApp8001，访问：http://localhost:8001/dept/discovery，结果如下
